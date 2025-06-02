@@ -1,27 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
 
 export interface ColumnInfo {
+    name: string;
     mime_type?: string;
 }
 
+export type Value = string | number | null;
+
 export interface SqlQueryResult {
-    columns: string[];
-    columns_info: { [column_name: string]: ColumnInfo };
-    rows: string[][];
+    columns: ColumnInfo[];
+    rows: Value[][];
     num_affected: number;
     execution_time_us: number;
 }
 
-export function useSqlQuery(sql: string, params?: string[]) {
+export interface SQLQuery {
+    sql: string;
+    args?: string[];
+}
+
+export function useSqlQuery({ sql, args }: SQLQuery) {
     return useQuery({
-        queryKey: [sql, params],
+        queryKey: [sql, args],
         queryFn: async () => {
             const resp = await fetch('http://localhost:3000/query', {
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ sql, params }),
+                body: JSON.stringify({ sql, params: args }),
             });
 
             if (!resp.ok) {

@@ -1,28 +1,27 @@
-use crate::QueryResult;
+use crate::{ColumnInfo, ColumnValue, QueryResult};
 use anyhow::Context;
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::fallible_iterator::FallibleIterator;
 use rusqlite::params_from_iter;
 use rusqlite::types::Value;
-use std::collections::HashMap;
 use std::time::Instant;
 
 impl super::Queryable for r2d2::Pool<SqliteConnectionManager> {
     fn query(&self, sql: &str, params: &[String]) -> anyhow::Result<QueryResult> {
         let conn = self.get().context("Error getting a connection")?;
         let mut stmt = conn.prepare(sql).context("Error preparing SQL")?;
-        let columns = stmt
+        let mut columns: Vec<_> = stmt
             .column_names()
             .into_iter()
-            .map(str::to_string)
-            .collect::<Vec<_>>();
+            .map(|name| ColumnInfo {
+                name: name.to_string(),
+                mime_type: None,
+            })
+            .collect();
 
         let start = Instant::now();
-        let rows: Vec<Vec<String>>;
+        let rows: Vec<Vec<ColumnValue>>;
         let mut num_affected = 0;
-        let mut columns_info = HashMap::new();
 
         if stmt.readonly() {
             rows = stmt
@@ -31,38 +30,29 @@ impl super::Queryable for r2d2::Pool<SqliteConnectionManager> {
                 .map(|row| {
                     let mut row_data = Vec::with_capacity(columns.len());
                     for col in 0..columns.len() {
-                        let column_name = columns[col].as_str();
                         row_data.push(match row.get::<_, Value>(col)? {
                             Value::Blob(v) => {
-                                if !columns_info.contains_key(column_name) {
-                                    columns_info.insert(
-                                        column_name.to_string(),
-                                        super::ColumnInfo {
-                                            mime_type: Some(
-                                                infer::Infer::new()
-                                                    .get(&v)
-                                                    .map(|s| s.mime_type())
-                                                    .unwrap_or("application/octet-stream")
-                                                    .to_string(),
-                                            ),
-                                        },
+                                if columns[col].mime_type.is_none() {
+                                    columns[col].mime_type.replace(
+                                        infer::Infer::new()
+                                            .get(&v)
+                                            .map(|s| s.mime_type())
+                                            .unwrap_or("application/octet-stream")
+                                            .to_string(),
                                     );
                                 }
-                                BASE64_STANDARD.encode(&v)
+
+                                ColumnValue::Blob(v)
                             }
-                            Value::Null => "NULL".to_string(),
-                            Value::Integer(v) => v.to_string(),
-                            Value::Real(v) => v.to_string(),
+                            Value::Null => ColumnValue::Null,
+                            Value::Integer(v) => ColumnValue::Integer(v),
+                            Value::Real(v) => ColumnValue::Float(v),
                             Value::Text(v) => {
-                                if !columns_info.contains_key(column_name) {
-                                    columns_info.insert(
-                                        column_name.to_string(),
-                                        super::ColumnInfo {
-                                            mime_type: Some(infer_text_type(&v)),
-                                        },
-                                    );
+                                if columns[col].mime_type.is_none() {
+                                    columns[col].mime_type.replace(infer_text_type(&v));
                                 }
-                                v
+
+                                ColumnValue::String(v)
                             }
                         });
                     }
@@ -82,7 +72,6 @@ impl super::Queryable for r2d2::Pool<SqliteConnectionManager> {
             columns,
             execution_time_us: start.elapsed().as_micros() as u64,
             rows,
-            columns_info,
         })
     }
 }
