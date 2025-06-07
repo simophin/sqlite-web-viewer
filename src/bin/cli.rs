@@ -29,9 +29,7 @@ async fn main() {
     let app = Router::new()
         .route("/query", post(execute_query))
         .layer(cors)
-        .with_state(Arc::new(DBState {
-            query: Box::new(pool),
-        }));
+        .with_state(Arc::new(DBState { query: pool }));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     tracing::info!("Listening on {}", listener.local_addr().unwrap());

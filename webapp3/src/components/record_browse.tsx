@@ -1,34 +1,64 @@
 import { Key, useEffect, useMemo, useState } from "react";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
+import { Card } from "@heroui/card";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, getKeyValue } from "@heroui/table";
 import { Pagination } from "@heroui/pagination";
-import { SQLQuery, useSqlQuery, Value } from "@/lib/useSqlQuery";
+import { SQLQuery, useSqlQueries, Value } from "@/lib/useSqlQuery";
 import { FullSizeLoader } from "./loaders";
 import { KeySquare } from "lucide-react"
 import useLocalStorage from "@/lib/useLocalStorage";
 import { ValueCell, ValueDisplay } from "./value_display";
+import { DataGrid } from "react-data-grid";
 
-
-export interface RecordsQueryInfo {
-    id: string;
-    countQuery: SQLQuery,
-    primarykeyColumnsQuery?: SQLQuery;
-
-    query: (offset: number, limit: number) => SQLQuery;
+type Pagination = {
+    limit?: number;
+    offset?: number;
 }
+
+type Sort = {
+    column: string;
+    direction: 'asc' | 'desc';
+}
+
+export type RecordsQueryInfo = {
+    id: string;
+    primarykeyColumnsQuery?: SQLQuery;
+    canPaginate: boolean;
+    canSort: boolean;
+    query: (options?: {
+        pagination?: Pagination;
+        sorts?: Sort[];
+        forCount?: boolean;
+    }) => SQLQuery;
+};
 
 export function tableRecordsQueryInfo(table: string): RecordsQueryInfo {
     return {
         id: `table-records-${table}`,
-        countQuery: {
-            sql: `SELECT COUNT(*) FROM ${table}`,
-        },
-        query: (offset: number, limit: number) => ({
-            sql: `SELECT * FROM ${table} LIMIT ${limit} OFFSET ${offset}`,
-        }),
+        canSort: true,
+        canPaginate: true,
         primarykeyColumnsQuery: {
-            sql: `SELECT name FROM pragma_table_info(?) WHERE pk > 0`,
-            args: [table],
+            sql: `SELECT name FROM pragma_table_xinfo(?) WHERE pk > 0 ORDER BY pk`,
+            params: [table],
         },
+        query: (options) => {
+            const { pagination, sorts, forCount } = options || {};
+            let sql = `SELECT ${forCount ? 'COUNT(*)' : '*'} FROM ${table}`;
+
+            if (sorts && sorts.length > 0) {
+                sql += ' ORDER BY ' + sorts.map(sort => `${sort.column} ${sort.direction.toUpperCase()}`).join(', ');
+            }
+
+            if (pagination && !forCount) {
+                const { limit, offset } = pagination;
+                if (limit !== undefined && offset !== undefined) {
+                    sql += ` LIMIT ${limit}`;
+                } else if (limit !== undefined) {
+                    sql += ` LIMIT ${offset}, ${limit}`;
+                }
+            }
+
+            return { sql };
+        }
     };
 }
 
@@ -36,36 +66,86 @@ interface QueryPaginationState {
     pageIndex: number;
 }
 
-
 export function RecordsTable({ info }: { info: RecordsQueryInfo }) {
     const [numPerPage, setNumPerPage] = useState(30);
     const [paginationStateMap, setPaginationStateMap] = useLocalStorage<{ [key: string]: QueryPaginationState }>('paginationStates', {});
     const paginationState = paginationStateMap[info.id] || { pageIndex: 0 };
 
-    const { error: countError, isPending: countIsPending, data: countData } = useSqlQuery(info.countQuery);
-    const totalRecordsCount = useMemo(() => countData ? (countData.rows[0][0] as number) : 0, [countData]);
-    const numPages = useMemo(() => totalRecordsCount > 0 ? Math.ceil(totalRecordsCount / numPerPage) : 0, [totalRecordsCount, numPerPage]);
+    const queries = useMemo(() => {
+        const q = [];
+        let primaryKeyQueryIndex: number | undefined, countQueryIndex: number | undefined;
+
+        if (info.primarykeyColumnsQuery) {
+            primaryKeyQueryIndex = q.length;
+            q.push(info.primarykeyColumnsQuery);
+        }
+
+        let pagination: Pagination | undefined;
+
+        if (info.canPaginate) {
+            pagination = {
+                limit: numPerPage,
+                offset: paginationState.pageIndex * numPerPage
+            };
+
+            countQueryIndex = q.length;
+            q.push(info.query({ forCount: true }));
+        }
+
+        // The main query for the records
+        const queryIndex = q.length;
+        q.push(info.query({ pagination }));
+
+        return {
+            queries: q, primaryKeyQueryIndex, countQueryIndex, queryIndex
+        }
+    }, [info, info.canPaginate ? numPerPage : -1, info.canPaginate ? paginationState.pageIndex : -1]);
+
+    const { isFetching, data, error } = useSqlQueries(queries);
+
+    const totalRecordsCount = (() => {
+        if (data && typeof queries.countQueryIndex == 'number') {
+            // If a count query is provided, use it to get the total count
+            return data.results.results[queries.countQueryIndex].rows[0][0] as number;
+        } else if (data) {
+            // If no count query is provided, no pagination is possible from the backend, total count is the length of the rows in the main query
+            return data.results.results[queries.queryIndex].rows.length;
+        }
+        return 0;
+    })();
+
+    const numPages = totalRecordsCount > 0 ? Math.ceil(totalRecordsCount / numPerPage) : 0;
+
+    const primaryColumns = useMemo(() => {
+        if (data && typeof queries.primaryKeyQueryIndex == 'number') {
+            return data.results.results[queries.primaryKeyQueryIndex].rows.map(row => row[0] as string);
+        }
+        return [];
+    }, [data?.results, queries.primaryKeyQueryIndex]);
+
+    // Restrict the page index to the number of pages
+    useEffect(() => {
+        if (paginationState.pageIndex >= numPages) {
+            setPaginationStateMap((prev) => {
+                if (numPages == 0) {
+                    delete prev[info.id];
+                } else {
+                    prev[info.id] = { pageIndex: Math.max(0, numPages - 1) };
+                }
+
+                return prev;
+            });
+        }
+    }, [numPages, paginationState.pageIndex]);
 
     const [selectedCell, setSelectedCell] = useState<{ rowIndex: number, columnIndex: number } | null>(null);
 
-    // Limit the pageIndex to the number of pages available
-    useEffect(() => {
-        if (paginationState.pageIndex >= numPages) {
-            setPaginationStateMap((prev) => ({
-                ...prev,
-                [info.id]: {
-                    ...prev[info.id],
-                    pageIndex: Math.max(0, numPages - 1)
-                }
-            }));
-        }
-    }, [numPages, paginationState.pageIndex, info.id]);
+    const mainResults = data?.results.results[queries.queryIndex];
 
-    const { error, data, isFetching } = useSqlQuery(info.query(paginationState.pageIndex * numPerPage, numPerPage));
+    const selectedValue = selectedCell && mainResults && selectedCell.rowIndex < mainResults.rows.length && selectedCell.columnIndex < mainResults.columns.length
+        ? mainResults.rows[selectedCell.rowIndex][selectedCell.columnIndex]
+        : null;
 
-    if (countError) {
-        return <p>Error counting records: {countError.message}</p>;
-    }
 
     if (error) {
         return <p>Error loading records: {error.message}</p>;
@@ -77,46 +157,47 @@ export function RecordsTable({ info }: { info: RecordsQueryInfo }) {
     };
 
     return <div className="relative flex min-h-[300px]">
-        {data && <Table isStriped layout="auto" shadow="sm" bottomContent={
-            <Pagination
-                className="flex flex-col items-center justify-center gap-2"
-                total={numPages} initialPage={1} page={paginationState.pageIndex + 1} onChange={(page) => setPaginationStateMap((prev) => {
-                    const newState = { ...prev };
-                    if (page == 1) {
-                        delete newState[info.id];
+        {isFetching && <FullSizeLoader />}
+
+        {mainResults && <Table aria-label="Records table" className="h-full flex-1 overflow-x-scroll overflow-y-scroll" shadow="none" bottomContent={
+            <Pagination total={numPages} page={paginationState.pageIndex} onChange={(pageIndex) => {
+                setPaginationStateMap((prev) => {
+                    if (pageIndex <= 0) {
+                        delete prev[info.id];
                     } else {
-                        newState[info.id] = { pageIndex: page - 1 };
+                        prev[info.id] = { pageIndex };
                     }
-
-                    return newState;
-                })} />
-        } key={info.id}>
-            <TableHeader>
-                {data.columns.map((col) => (
-                    <TableColumn key={col.name}>
-                        <span className="max-w-[200px] flex items-center justify-center gap-1">
-                            {/* {info.primaryKeyColumns?.includes(col) ? <KeySquare className="w-3 inline-block" /> : <></>} */}
-                            {col.name}
-                        </span>
-                    </TableColumn>
-                ))}
+                    return prev;
+                });
+            }} />
+        }>
+            <TableHeader columns={mainResults?.columns ?? []}>
+                {(column) => <TableColumn key={column.name}>
+                    <span className="flex items-center gap-1 justify-start">
+                        {primaryColumns.includes(column.name) && <KeySquare className="inline w-4" />}
+                        {column.name}
+                    </span>
+                </TableColumn>}
             </TableHeader>
-            <TableBody emptyContent="No records found" isLoading={isFetching}>
-                {data.rows.map((row, rowIndex) => (<TableRow>
-                    {row.map((cell, columnIndex) => (
-                        <TableCell
-                            onFocus={() => setSelectedCell({ rowIndex, columnIndex })}
-                            onClick={() => setSelectedCell({ rowIndex, columnIndex })}
-                            className={`max-w-[200px] overflow-x-hidden whitespace-nowrap text-ellipsis ${isSelectedCell(rowIndex, columnIndex) ? "bg-green-200 font-bold" : ""}`} >
-                            <span className="cursor-default"><ValueCell value={cell} /></span>
-                        </TableCell>
-                    ))}
-                </TableRow>))}
+
+            <TableBody>
+                {mainResults.rows.map((row, rowIndex) => (
+                    <TableRow key={rowIndex} className="cursor-default">
+                        {row.map((value, columnIndex) => (
+                            <TableCell
+                                onClick={() => setSelectedCell({ rowIndex, columnIndex })}
+                                key={columnIndex}
+                                className={`${isSelectedCell(rowIndex, columnIndex) ? 'bg-blue-50' : ''} max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap`}>
+                                <ValueCell value={value} />
+                            </TableCell>
+                        ))}
+                    </TableRow>
+                ))}
             </TableBody>
-        </Table>
-        }
+        </Table>}
 
-
-        {(isFetching || countIsPending) && <FullSizeLoader />}
+        {selectedValue && <div className="w-[25%] p-4"><Card className="p-2" shadow="sm">
+            <ValueDisplay value={selectedValue} />
+        </Card></div>}
     </div >
 }

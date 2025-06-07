@@ -14,7 +14,7 @@ function App() {
         <NavSections selectedItem={selectedNavItem} onItemSelected={setSelectedNavItem} />
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4" style={{ overflowX: 'hidden' }}>
+      <div className="flex-1 p-4">
         {query && <RecordsTable info={query} />}
       </div>
 

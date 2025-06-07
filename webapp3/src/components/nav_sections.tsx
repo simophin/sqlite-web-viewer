@@ -1,4 +1,4 @@
-import { useSqlQuery } from "@/lib/useSqlQuery";
+import { useSingleSqlQuery } from "@/lib/useSqlQuery";
 import { Listbox, ListboxSection, ListboxItem, ListboxProps } from "@heroui/listbox";
 import { FullSizeLoader } from "./loaders";
 import { useLocalQueryHistory } from "@/lib/useLocalQueryHistory";
@@ -71,7 +71,7 @@ export default function NavSections(
         selectedItem?: NavItem, onItemSelected: (selected?: NavItem) => void,
     }
 ) {
-    const { isPending, error, data } = useSqlQuery({
+    const { isPending, error, data } = useSingleSqlQuery({
         sql: `SELECT m.name, m.type
          FROM sqlite_master m
          WHERE m.type IN ('table', 'view')
@@ -128,12 +128,14 @@ export default function NavSections(
 
     return (
         <div className="relative">
-            <Listbox className="relative"
+            <Listbox
+                aria-label="Navigation sections"
+                className="relative"
                 selectedKeys={selectedItem ? [navItemToKey(selectedItem)] : []}
                 selectionMode="single" onSelectionChange={onSelectionChange}>
                 {
                     sectionItems.map((section) => (
-                        <ListboxSection title={navItemSectionLabel(section[0])} items={section} showDivider>
+                        <ListboxSection key={navItemSectionLabel(section[0])} title={navItemSectionLabel(section[0])} items={section} showDivider>
                             {(item) => <ListboxItem key={navItemToKey(item)}>{item.name}</ListboxItem>}
                         </ListboxSection>
                     ))

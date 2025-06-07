@@ -12,10 +12,9 @@ use std::sync::Arc;
 #[derive(Serialize)]
 pub struct ColumnInfo {
     pub name: String,
-    pub mime_type: Option<String>,
 }
 
-pub enum ColumnValue {
+pub enum CellValue {
     String(String),
     Integer(i64),
     Float(f64),
@@ -23,28 +22,41 @@ pub enum ColumnValue {
     Null,
 }
 
-impl Serialize for ColumnValue {
+impl Serialize for CellValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         match self {
-            ColumnValue::String(s) => serializer.serialize_str(s),
-            ColumnValue::Integer(i) => serializer.serialize_i64(*i),
-            ColumnValue::Float(f) => serializer.serialize_f64(*f),
-            ColumnValue::Blob(b) => serializer
-                .serialize_str(format!("data:;base64,{}", BASE64_STANDARD.encode(&b)).as_str()),
-            ColumnValue::Null => serializer.serialize_none(),
+            CellValue::String(s) => serializer.serialize_str(s),
+            CellValue::Integer(i) => serializer.serialize_i64(*i),
+            CellValue::Float(f) => serializer.serialize_f64(*f),
+            CellValue::Blob(b) => {
+                let mime_type = infer::Infer::new()
+                    .get(&b)
+                    .map(|info| info.mime_type())
+                    .unwrap_or_default();
+
+                serializer.serialize_str(
+                    format!("data:{mime_type};base64,{}", BASE64_STANDARD.encode(&b)).as_str(),
+                )
+            }
+            CellValue::Null => serializer.serialize_none(),
         }
     }
 }
 
 #[derive(Serialize)]
+pub struct QueryResults {
+    pub execution_time_us: u64,
+    pub results: Vec<QueryResult>,
+}
+
+#[derive(Serialize)]
 pub struct QueryResult {
     pub num_affected: usize,
-    pub execution_time_us: u64,
     pub columns: Vec<ColumnInfo>,
-    pub rows: Vec<Vec<ColumnValue>>,
+    pub rows: Vec<Vec<CellValue>>,
 }
 
 #[derive(Deserialize)]
@@ -54,19 +66,32 @@ pub struct Query {
     pub params: Vec<String>,
 }
 
-pub trait Queryable {
-    fn query(&self, sql: &str, params: &[String]) -> anyhow::Result<QueryResult>;
+#[derive(Deserialize)]
+pub struct Request {
+    pub queries: Vec<Query>,
+    pub run_in_transaction: bool,
 }
 
-pub struct DBState {
-    pub query: Box<dyn Queryable + Send + Sync>,
+pub trait Queryable {
+    fn query<'a>(
+        &self,
+        run_in_transaction: bool,
+        quries: impl Iterator<Item = &'a Query>,
+    ) -> anyhow::Result<QueryResults>;
+}
+
+pub struct DBState<Q> {
+    pub query: Q,
 }
 
 pub async fn execute_query(
-    State(state): State<Arc<DBState>>,
-    Json(Query { sql, params }): Json<Query>,
+    State(state): State<Arc<DBState<impl Queryable>>>,
+    Json(Request {
+        queries,
+        run_in_transaction,
+    }): Json<Request>,
 ) -> Response {
-    match state.query.query(&sql, &params) {
+    match state.query.query(run_in_transaction, queries.iter()) {
         Ok(r) => (StatusCode::OK, Json(r)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("{e:?}")).into_response(),
     }
