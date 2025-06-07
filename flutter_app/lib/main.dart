@@ -32,8 +32,11 @@ class MyApp extends StatelessWidget {
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
+      darkTheme: ThemeData.dark(useMaterial3: true),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      themeMode: ThemeMode.dark,
     );
   }
 }
@@ -107,9 +110,11 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            RecordBrowser(
-              endpoint: Uri.parse("http://localhost:3000"),
-              queryInfo: TableRecordQueryInfo('messages'),
+            Expanded(
+              child: RecordBrowser(
+                endpoint: Uri.parse("http://localhost:3000"),
+                queryInfo: TableRecordQueryInfo('messages'),
+              ),
             ),
           ],
         ),

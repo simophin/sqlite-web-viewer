@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "flutter_app/lib/main.dart",
             "env": {
-                "DISPLAY": ":1.0"
+                "WAYLAND_DISPLAY": "wayland-qUOE8kqO2V"
             }
         },
         {

@@ -20,10 +20,10 @@ abstract class RecordQueryInfo {
   SQLQuery query({Pagination? pagination, List<Sort>? sorts, bool? forCount});
 }
 
-class TableRecordQueryInfo extends RecordQueryInfo {
+class TableRecordQueryInfo implements RecordQueryInfo {
   final String tableName;
 
-  TableRecordQueryInfo(this.tableName);
+  const TableRecordQueryInfo(this.tableName);
 
   @override
   bool get canPaginate => true;
