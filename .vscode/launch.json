@@ -5,6 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Flutter",
+            "type": "dart",
+            "request": "launch",
+            "program": "flutter_app/lib/main.dart",
+            "env": {
+                "DISPLAY": ":1.0"
+            }
+        },
+        {
             "type": "lldb",
             "request": "launch",
             "name": "Debug unit tests in library 'sqlite_web_viewer'",
