@@ -39,6 +39,7 @@ dependencies:
   json_annotation: ^4.9.0
   http: ^1.4.0
   syncfusion_flutter_datagrid: ^29.2.9
+  collection: ^1.19.1
 
 dev_dependencies:
   flutter_test:

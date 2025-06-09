@@ -100,18 +100,20 @@ class RecordBrowser extends HookWidget {
         : 0;
 
     final mainResults = data.data.results[data.request.mainQueryIndex];
+    final primaryKeys = data.request.primaryKeyQueryIndex != null
+        ? data.data.results[data.request.primaryKeyQueryIndex!].rows
+              .map((x) => x.first as String)
+              .toList(growable: false)
+        : <String>[];
 
     return RecordTable(
       columns: mainResults.columns.map((x) => x.name).toList(),
+      primaryKeyColumns: primaryKeys,
       rowCount: mainResults.rows.length,
-      cellBuilder: (ctx, rowIndex, columnIndex) {
+      textStyle: Theme.of(context).textTheme.labelMedium!,
+      cellValue: (ctx, rowIndex, columnIndex) {
         final cellValue = mainResults.rows[rowIndex][columnIndex];
-        return Center(
-          child: Text(
-            cellValue?.toString() ?? '',
-            overflow: TextOverflow.ellipsis,
-          ),
-        );
+        return (cellValue?.toString() ?? '', null);
       },
     );
   }
