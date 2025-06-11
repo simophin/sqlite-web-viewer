@@ -2,9 +2,10 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_app/text_span_ext.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'record_table.freezed.dart';
 
 const double _maxColumnWidth = 300.0;
 const double _minColumnWidth = 35.0;
@@ -22,6 +23,15 @@ class _TableMeasurements {
   });
 }
 
+@freezed
+abstract class Cell with _$Cell {
+  const factory Cell({
+    required int rowIndex,
+    required int columnIndex,
+  }) = _Cell;
+}
+
+
 class RecordTable<CellType> extends HookWidget {
   final List<String> columns;
   final List<String> primaryKeyColumns;
@@ -30,6 +40,8 @@ class RecordTable<CellType> extends HookWidget {
   cellValue;
   final TextStyle textStyle;
   final EdgeInsetsGeometry columnHeaderPaddings;
+  final Cell? selectedCell;
+  final void Function(Cell)? onCellSelected;
 
   TextStyle get _headerTextStyle => textStyle.copyWith(
     fontWeight: FontWeight.w600,
@@ -41,6 +53,8 @@ class RecordTable<CellType> extends HookWidget {
     required this.rowCount,
     required this.cellValue,
     required this.primaryKeyColumns,
+    this.selectedCell,
+    this.onCellSelected,
     this.textStyle = const TextStyle(
       fontWeight: FontWeight.bold,
       fontSize: 14,
@@ -130,99 +144,107 @@ class RecordTable<CellType> extends HookWidget {
       ],
     );
 
-    final controller = useMemoized(() => ScrollController(), []);
+    final controller = useScrollController();
 
-    return LayoutBuilder(
-      builder: (ctx, constraints) {
-        final header = Container(
-          decoration: BoxDecoration(
-            color: Theme.of(ctx).colorScheme.surfaceContainer,
-          ),
-          child: _SizedRow(
-            columnWidths: measures.columnWidths,
-            showBottomBorder: true,
-            showTopBorder: true,
-            columnBuilder: (ctx, i) {
-              final Widget child;
+    final header = Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+      ),
+      child: _SizedRow(
+        columnWidths: measures.columnWidths,
+        showBottomBorder: true,
+        showTopBorder: true,
+        columnBuilder: (ctx, i) {
+          final Widget child;
 
-              if (primaryKeyColumns.contains(columns[i])) {
-                child = RichText(text: TextSpan(
-                  children: [
-                    WidgetSpan(child: Icon(Icons.key, size: _primaryKeyIconSize, color: textStyle.color)),
-                    const WidgetSpan(
-                      child: SizedBox(width: _primaryKeyIconGap), // Gap after the icon
-                    ),
-                    TextSpan(
-                      text: columns[i],
-                      style: _headerTextStyle,
-                    ),
-                  ]
-                ));
-              } else {
-                child = Text(
-                  columns[i],
-                  style: _headerTextStyle,
+          if (primaryKeyColumns.contains(columns[i])) {
+            child = RichText(text: TextSpan(
+                children: [
+                  WidgetSpan(child: Icon(Icons.key, size: _primaryKeyIconSize, color: textStyle.color)),
+                  const WidgetSpan(
+                    child: SizedBox(width: _primaryKeyIconGap), // Gap after the icon
+                  ),
+                  TextSpan(
+                    text: columns[i],
+                    style: _headerTextStyle,
+                  ),
+                ]
+            ));
+          } else {
+            child = Text(
+              columns[i],
+              style: _headerTextStyle,
+              textAlign: TextAlign.start,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            );
+          }
+
+          return Container(
+            padding: columnHeaderPaddings,
+            child: child,
+          );
+        },
+      ),
+    );
+
+    final body = ListView.separated(
+      itemBuilder: (ctx, row) {
+        return _SizedRow(
+          columnWidths: measures.columnWidths,
+          columnBuilder: (ctx, column) {
+            final (text, style) = cellValue(ctx, row, column);
+            final isSelected = selectedCell != null &&
+                selectedCell!.rowIndex == row &&
+                selectedCell!.columnIndex == column;
+            return InkWell(
+              onTap: () => onCellSelected?.call(Cell(rowIndex: row, columnIndex: column)),
+              mouseCursor: SystemMouseCursors.cell,
+              child: Container(
+                padding: columnHeaderPaddings,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Theme.of(ctx).colorScheme.primaryContainer
+                      : null,
+                ),
+                child: Text(
+                  text,
+                  style: textStyle.merge(style),
                   textAlign: TextAlign.start,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                );
-              }
-
-              return Container(
-                padding: columnHeaderPaddings,
-                child: child,
-              );
-            },
-          ),
-        );
-        ;
-
-        final body = ListView.separated(
-          itemBuilder: (ctx, row) {
-            return _SizedRow(
-              columnWidths: measures.columnWidths,
-              columnBuilder: (ctx, column) {
-                final (text, style) = cellValue(ctx, row, column);
-                return Container(
-                  padding: columnHeaderPaddings,
-                  child: Text(
-                    text,
-                    style: textStyle.merge(style),
-                    textAlign: TextAlign.start,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              },
-              showTopBorder: row == 0,
-              showBottomBorder: row == rowCount - 1,
+                ),
+              ),
             );
           },
-          padding: EdgeInsets.only(
-            top: measures.columnHeaderHeight - 1,
-            bottom: 16.0,
-          ),
-          separatorBuilder: (ctx, row) => Divider(
-            height: 1.0,
-            color: Theme.of(ctx).colorScheme.outlineVariant,
-          ),
-          itemCount: rowCount,
-        );
-
-        return Scrollbar(
-          controller: controller,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            controller: controller,
-            child: Stack(
-              children: [
-                Positioned.fill(child: body),
-                header,
-              ],
-            ),
-          ),
+          showTopBorder: row == 0,
+          showBottomBorder: row == rowCount - 1,
         );
       },
+      padding: EdgeInsets.only(
+        top: measures.columnHeaderHeight - 1,
+        bottom: 16.0,
+      ),
+      separatorBuilder: (ctx, row) => Divider(
+        height: 1.0,
+        color: Theme.of(ctx).colorScheme.outlineVariant,
+      ),
+      itemCount: rowCount,
+    );
+
+    return Scrollbar(
+      controller: controller,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        controller: controller,
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned.fill(child: body),
+            header,
+          ],
+        ),
+      ),
     );
   }
 }

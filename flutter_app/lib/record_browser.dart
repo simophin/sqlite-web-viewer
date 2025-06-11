@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter_app/cell_value.dart';
 import 'package:flutter_app/query.dart';
 import 'package:flutter_app/record_table.dart';
+import 'package:flutter_app/value_display.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import 'record_query_info.dart';
 
@@ -62,19 +61,19 @@ abstract class _QueryInfoRequestProvider
 }
 
 class RecordBrowser extends HookWidget {
+  final Uri endpoint;
+  final RecordQueryInfo queryInfo;
+
   const RecordBrowser({
     super.key,
     required this.endpoint,
     required this.queryInfo,
   });
 
-  final Uri endpoint;
-  final RecordQueryInfo queryInfo;
-
   @override
   Widget build(BuildContext context) {
     final pageIndex = useState(0);
-    final pageSize = useState(200);
+    final pageSize = useState(100);
     final results = useQueries(
       endpoint,
       _QueryInfoRequestProvider.fromQueryInfo(
@@ -83,6 +82,9 @@ class RecordBrowser extends HookWidget {
         pageSize: pageSize.value,
       ),
     );
+    final selectedCell = useState<Cell?>(null);
+
+    useEffect(() => selectedCell.value = null, [queryInfo]);
 
     if (results.hasError) {
       return Center(child: Text('Error: ${results.error}'));
@@ -106,15 +108,41 @@ class RecordBrowser extends HookWidget {
               .toList(growable: false)
         : <String>[];
 
-    return RecordTable(
-      columns: mainResults.columns.map((x) => x.name).toList(),
-      primaryKeyColumns: primaryKeys,
-      rowCount: mainResults.rows.length,
-      textStyle: Theme.of(context).textTheme.labelMedium!,
-      cellValue: (ctx, rowIndex, columnIndex) {
-        final cellValue = mainResults.rows[rowIndex][columnIndex];
-        return (cellValue?.toString() ?? '', null);
-      },
+    final selectedCellValue =
+        selectedCell.value != null &&
+            selectedCell.value!.rowIndex < mainResults.rows.length &&
+            selectedCell.value!.columnIndex < mainResults.columns.length
+        ? mainResults.rows[selectedCell.value!.rowIndex][selectedCell
+              .value!
+              .columnIndex]
+        : null;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Expanded(
+          child: RecordTable(
+            columns: mainResults.columns.map((x) => x.name).toList(),
+            primaryKeyColumns: primaryKeys,
+            rowCount: mainResults.rows.length,
+            textStyle: Theme.of(context).textTheme.bodySmall!,
+            selectedCell: selectedCell.value,
+            onCellSelected: (cell) => selectedCell.value = cell,
+            cellValue: (ctx, rowIndex, columnIndex) {
+              final cellValue = mainResults.rows[rowIndex][columnIndex];
+              return formatCellValue(cellValue, theme: Theme.of(context));
+            },
+          ),
+        ),
+        if (selectedCellValue != null)
+          SizedBox(
+            width: 300,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ValueDisplay(selectedCellValue),
+            ),
+          )
+      ],
     );
   }
 }
