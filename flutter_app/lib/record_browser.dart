@@ -117,6 +117,8 @@ class RecordBrowser extends HookWidget {
               .columnIndex]
         : null;
 
+    var themeData = Theme.of(context);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -125,23 +127,22 @@ class RecordBrowser extends HookWidget {
             columns: mainResults.columns.map((x) => x.name).toList(),
             primaryKeyColumns: primaryKeys,
             rowCount: mainResults.rows.length,
-            textStyle: Theme.of(context).textTheme.bodySmall!,
+            textStyle: themeData.textTheme.bodySmall!,
             selectedCell: selectedCell.value,
             onCellSelected: (cell) => selectedCell.value = cell,
             cellValue: (ctx, rowIndex, columnIndex) {
               final cellValue = mainResults.rows[rowIndex][columnIndex];
-              return formatCellValue(cellValue, theme: Theme.of(context));
+              return formatCellValue(cellValue, theme: themeData);
             },
           ),
         ),
-        if (selectedCellValue != null)
-          SizedBox(
+        if (selectedCellValue != null) ...[
+          const SizedBox(width: 8.0),
+          Container(
             width: 300,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ValueDisplay(selectedCellValue),
-            ),
-          )
+            decoration: BoxDecoration(color: themeData.colorScheme.surfaceContainerLow),
+            child: ValueDisplay(selectedCellValue),
+          )],
       ],
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/drag_handle.dart';
 import 'package:flutter_app/record_browser.dart';
 import 'package:flutter_app/section_nav.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -36,6 +37,9 @@ class MyApp extends StatelessWidget {
   }
 }
 
+const _minNavColumnWidth = 150.0;
+const _maxNavColumnWidth = 600.0;
+
 class MyHomePage extends HookWidget {
   const MyHomePage({super.key, required this.title});
 
@@ -45,12 +49,10 @@ class MyHomePage extends HookWidget {
   Widget build(BuildContext context) {
     final endpoint = Uri.parse("http://localhost:3000");
     final selectedNavItemId = useState<NavItem?>(null);
-    final onItemSelected = useCallback(
-      (NavItem item) {
-        selectedNavItemId.value = item;
-      },
-      [selectedNavItemId],
-    );
+    final onItemSelected = useCallback((NavItem item) {
+      selectedNavItemId.value = item;
+    }, [selectedNavItemId]);
+    final navColumnWidth = useState(300.0);
 
     return Scaffold(
       appBar: AppBar(
@@ -63,12 +65,21 @@ class MyHomePage extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             SizedBox(
-              width: 300,
+              width: navColumnWidth.value,
               child: SectionNav(
                 endpoint: endpoint,
                 selectedItem: selectedNavItemId.value,
                 onItemSelected: onItemSelected,
               ),
+            ),
+            DraggingDivider(
+              onDragMoved: (dx) {
+                navColumnWidth.value = (navColumnWidth.value + dx).clamp(
+                  _minNavColumnWidth,
+                  _maxNavColumnWidth,
+                );
+                return true;
+              },
             ),
             Expanded(
               flex: 1,
@@ -86,7 +97,7 @@ class MyHomePage extends HookWidget {
                   _ => const Text('No item selected'),
                 },
               ),
-            )
+            ),
           ],
         ),
       ),

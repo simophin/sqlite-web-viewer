@@ -85,6 +85,8 @@ class SectionNav extends HookWidget {
             selected: selectedItem == navItem,
             onTap: () => onItemSelected?.call(navItem),
             titleTextStyle: Theme.of(context).textTheme.bodyMedium,
+            selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
+            selectedColor: Theme.of(context).colorScheme.onPrimaryContainer,
             visualDensity: VisualDensity(
               vertical: VisualDensity.minimumDensity,
             ),
