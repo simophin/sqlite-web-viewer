@@ -32,15 +32,15 @@ class ValueDisplay extends HookWidget {
     }, [value, theme]);
 
     return jsonDoc != null
-        ? JsonView(json: jsonDoc)
-        : SingleChildScrollView(
-            child: SelectableText(
-              text,
-              style: style?.merge(
-                TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontFamily: 'monospace',
-                ),
+        ? JsonViewBody(
+            json: jsonDoc,
+          )
+        : SelectableText(
+            text,
+            style: style?.merge(
+              TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontFamily: 'monospace',
               ),
             ),
           );

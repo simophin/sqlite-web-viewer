@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/drag_handle.dart';
 import 'package:flutter_app/record_browser.dart';
 import 'package:flutter_app/section_nav.dart';
+import 'package:flutter_app/shared_prefs.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import 'record_query_info.dart';
@@ -52,8 +53,7 @@ class MyHomePage extends HookWidget {
     final onItemSelected = useCallback((NavItem item) {
       selectedNavItemId.value = item;
     }, [selectedNavItemId]);
-    final navColumnWidth = useState(300.0);
-
+    final navColumnWidth = usePreference('nav_column_width', 300.0);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,

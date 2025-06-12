@@ -16,7 +16,9 @@ abstract class _QueryInfoRequestProvider
     implements RequestProvider {
   const factory _QueryInfoRequestProvider({
     required Request request,
-    int? primaryKeyQueryIndex,
+    int? columnMetaQueryIndex,
+    Map<String, List<ColumnMeta>> Function(List<List<dynamic>> rows)?
+    columnMetaParser,
     int? countQueryIndex,
     required int mainQueryIndex,
   }) = _$_QueryInfoRequestProvider;
@@ -27,7 +29,7 @@ abstract class _QueryInfoRequestProvider
     required int pageSize,
   }) {
     final queries = <SQLQuery>[];
-    int? primaryKeyQueryIndex;
+    int? columnMetaQueryIndex;
     int? countQueryIndex;
 
     if (queryInfo.canPaginate) {
@@ -35,10 +37,9 @@ abstract class _QueryInfoRequestProvider
       queries.add(queryInfo.query(forCount: true));
     }
 
-    final primaryKeyQuery = queryInfo.primaryKeyQuery;
-    if (primaryKeyQuery != null) {
-      primaryKeyQueryIndex = queries.length;
-      queries.add(primaryKeyQuery);
+    if (queryInfo.columnMetaQuery != null) {
+      columnMetaQueryIndex = queries.length;
+      queries.add(queryInfo.columnMetaQuery!.query);
     }
 
     int mainQueryIndex = queries.length;
@@ -53,9 +54,10 @@ abstract class _QueryInfoRequestProvider
 
     return _QueryInfoRequestProvider(
       request: Request(runInTransaction: true, queries: queries),
-      primaryKeyQueryIndex: primaryKeyQueryIndex,
+      columnMetaQueryIndex: columnMetaQueryIndex,
       countQueryIndex: countQueryIndex,
       mainQueryIndex: mainQueryIndex,
+      columnMetaParser: queryInfo.columnMetaQuery?.parse,
     );
   }
 }
@@ -102,11 +104,18 @@ class RecordBrowser extends HookWidget {
         : 0;
 
     final mainResults = data.data.results[data.request.mainQueryIndex];
-    final primaryKeys = data.request.primaryKeyQueryIndex != null
-        ? data.data.results[data.request.primaryKeyQueryIndex!].rows
-              .map((x) => x.first as String)
-              .toList(growable: false)
-        : <String>[];
+    final columnMetas = data.request.columnMetaQueryIndex != null
+        ? data.request.columnMetaParser!(
+            data.data.results[data.request.columnMetaQueryIndex!].rows,
+          )
+        : <String, List<ColumnMeta>>{};
+
+    final primaryKeys = columnMetas.entries
+        .where(
+          (entry) => entry.value.any((meta) => meta is ColumnMetaPrimaryKey),
+        )
+        .map((entry) => entry.key)
+        .toList(growable: false);
 
     final selectedCellValue =
         selectedCell.value != null &&
@@ -115,6 +124,10 @@ class RecordBrowser extends HookWidget {
         ? mainResults.rows[selectedCell.value!.rowIndex][selectedCell
               .value!
               .columnIndex]
+        : null;
+
+    final selectedColumnMeta = selectedCell.value != null
+        ? columnMetas[mainResults.columns[selectedCell.value!.columnIndex].name]
         : null;
 
     var themeData = Theme.of(context);
@@ -140,9 +153,92 @@ class RecordBrowser extends HookWidget {
           const SizedBox(width: 8.0),
           Container(
             width: 300,
-            decoration: BoxDecoration(color: themeData.colorScheme.surfaceContainerLow),
-            child: ValueDisplay(selectedCellValue),
-          )],
+            decoration: BoxDecoration(
+              color: themeData.colorScheme.surfaceContainerLow,
+              border: Border.all(color: themeData.colorScheme.outlineVariant),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: _ValueDisplayPanel(
+              value: selectedCellValue,
+              metadata: selectedColumnMeta ?? [],
+              columnName:
+                  mainResults.columns[selectedCell.value!.columnIndex].name,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ValueDisplayPanel extends HookWidget {
+  final dynamic value;
+  final String columnName;
+  final List<ColumnMeta> metadata;
+
+  const _ValueDisplayPanel({
+    super.key,
+    required this.value,
+    required this.columnName,
+    required this.metadata,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        _ColumnMetaRow(label: 'Column', value: columnName),
+        // Dynamic column metadata rows
+        ...metadata.map((meta) {
+          if (meta is ColumnMetaPrimaryKey) {
+            return _ColumnMetaRow(label: 'Primary key', value: 'Yes');
+          } else if (meta is ColumnMetaExtra) {
+            return _ColumnMetaRow(
+              label: meta.label,
+              value: meta.value,
+            );
+          } else {
+            throw Exception('Unknown ColumnMeta type: ${meta.runtimeType}');
+          }
+        }),
+
+        // Value display row
+        _ColumnMetaRow(label: 'Value', value: ''),
+
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ValueDisplay(value),
+        ),
+      ],
+    );
+  }
+}
+
+class _ColumnMetaRow extends HookWidget {
+  final String label;
+  final String value;
+
+  const _ColumnMetaRow({
+    super.key,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    var colors = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          color: colors.secondaryContainer,
+          padding: const EdgeInsets.all(4.0),
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(width: 8.0),
+        Text(value),
       ],
     );
   }

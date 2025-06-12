@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -150,6 +151,7 @@ class RecordTable<CellType> extends HookWidget {
     );
 
     final controller = useScrollController();
+    final verticalController = useScrollController();
 
     final header = Container(
       decoration: BoxDecoration(
@@ -198,6 +200,7 @@ class RecordTable<CellType> extends HookWidget {
     );
 
     final body = ListView.separated(
+      controller: verticalController,
       itemBuilder: (ctx, row) {
         return _SizedRow(
           columnWidths: measures.columnWidths,
@@ -236,15 +239,17 @@ class RecordTable<CellType> extends HookWidget {
 
     return Scrollbar(
       controller: controller,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        controller: controller,
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            Positioned.fill(child: body),
-            header,
-          ],
+      child: FadingEdgeScrollView.fromSingleChildScrollView(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          controller: controller,
+          clipBehavior: Clip.hardEdge,
+          child: Stack(
+            children: [
+              Positioned.fill(child: FadingEdgeScrollView.fromScrollView(child: body)),
+              header,
+            ],
+          ),
         ),
       ),
     );

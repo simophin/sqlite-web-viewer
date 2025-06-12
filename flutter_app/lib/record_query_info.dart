@@ -13,10 +13,33 @@ abstract class Sort with _$Sort {
   const factory Sort({required String column, required bool ascending}) = _Sort;
 }
 
+@freezed
+abstract class ColumnMeta with _$ColumnMeta {
+  const factory ColumnMeta.primaryKey({required int priority}) =
+      ColumnMetaPrimaryKey;
+
+  const factory ColumnMeta.extra({
+    required String label,
+    required String value,
+  }) = ColumnMetaExtra;
+}
+
+@freezed
+abstract class ColumnMetaQuery with _$ColumnMetaQuery {
+  const factory ColumnMetaQuery({
+    required SQLQuery query,
+    required Map<String, List<ColumnMeta>> Function(List<List<dynamic>> rows)
+    parse,
+  }) = _ColumnMetaQuery;
+}
+
 abstract class RecordQueryInfo {
   bool get canPaginate;
+
   bool get canSort;
-  SQLQuery? get primaryKeyQuery;
+
+  ColumnMetaQuery? get columnMetaQuery;
+
   SQLQuery query({Pagination? pagination, List<Sort>? sorts, bool? forCount});
 }
 
@@ -32,13 +55,32 @@ class TableRecordQueryInfo implements RecordQueryInfo {
   bool get canSort => true;
 
   @override
-  SQLQuery? get primaryKeyQuery {
-    // Assuming the primary key is always the first column in the table
-    return SQLQuery(
-      sql: "SELECT name FROM pragma_table_xinfo(?) WHERE pk > 0 ORDER BY pk ",
+  ColumnMetaQuery? get columnMetaQuery => ColumnMetaQuery(
+    query: SQLQuery(
+      sql:
+          "SELECT name, type, `notnull`, dflt_value, pk, (hidden == 2) AS is_generated FROM pragma_table_xinfo(?)",
       params: [tableName],
-    );
-  }
+    ),
+    parse: (rows) => Map.fromEntries(
+      rows.map((row) {
+        var pk = row[4] as int;
+        return MapEntry(row[0] as String, [
+          if (pk > 0) ColumnMeta.primaryKey(priority: pk),
+          ColumnMeta.extra(label: "Data type", value: row[1] as String),
+          ColumnMeta.extra(
+            label: "Not null",
+            value: row[2] == 1 ? "Yes" : "No",
+          ),
+          ColumnMeta.extra(
+            label: "Default value",
+            value: row[3] != null ? row[3].toString() : "None",
+          ),
+          if (row[5] == 1)
+            ColumnMeta.extra(label: "Generated column", value: "Yes"),
+        ]);
+      }),
+    ),
+  );
 
   @override
   SQLQuery query({
