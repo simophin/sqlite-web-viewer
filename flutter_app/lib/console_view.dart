@@ -24,7 +24,7 @@ class QueryHistoryView extends HookWidget {
           jsonEncode(items.map((item) => item.toJson()).toList()),
     );
 
-    final newQuery = useState<String>('');
+    final newQuery = usePreference<String>('console_draft_$consoleId', '');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
