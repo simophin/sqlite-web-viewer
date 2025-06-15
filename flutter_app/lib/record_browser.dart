@@ -121,9 +121,9 @@ class RecordBrowser extends HookWidget {
         selectedCell.value != null &&
             selectedCell.value!.rowIndex < mainResults.rows.length &&
             selectedCell.value!.columnIndex < mainResults.columns.length
-        ? mainResults.rows[selectedCell.value!.rowIndex][selectedCell
+        ? [mainResults.rows[selectedCell.value!.rowIndex][selectedCell
               .value!
-              .columnIndex]
+              .columnIndex]]
         : null;
 
     final selectedColumnMeta = selectedCell.value != null
@@ -159,7 +159,7 @@ class RecordBrowser extends HookWidget {
               borderRadius: BorderRadius.circular(8.0),
             ),
             child: _ValueDisplayPanel(
-              value: selectedCellValue,
+              value: selectedCellValue[0],
               metadata: selectedColumnMeta ?? [],
               columnName:
                   mainResults.columns[selectedCell.value!.columnIndex].name,

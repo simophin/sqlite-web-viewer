@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_app/console_view.dart';
 import 'package:flutter_app/drag_handle.dart';
 import 'package:flutter_app/record_browser.dart';
 import 'package:flutter_app/section_nav.dart';
@@ -55,10 +56,6 @@ class MyHomePage extends HookWidget {
     }, [selectedNavItemId]);
     final navColumnWidth = usePreference('nav_column_width', 300.0);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(title),
-      ),
       body: SizedBox.expand(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -94,6 +91,7 @@ class MyHomePage extends HookWidget {
                     endpoint: endpoint,
                     queryInfo: TableRecordQueryInfo(name),
                   ),
+                  NavItemConsole(id: final id) => QueryHistoryView(id),
                   _ => const Text('No item selected'),
                 },
               ),

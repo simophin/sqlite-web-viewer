@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,4 +42,21 @@ ValueNotifier<T> usePreference<T>(String key, T initialValue) {
   }, [debouncedValue]);
 
   return v;
+}
+
+(T, void Function(T Function(T))) useJsonPreference<T>(
+  String key,
+  T initialValue, {
+  required T Function(Object?) fromJson,
+  required String Function(T) toJson,
+}) {
+ final stringValue = usePreference<String>(key, toJson(initialValue));
+
+ final value = useMemoized(() => fromJson(jsonDecode(stringValue.value)), [stringValue.value]);
+
+  final setValue = useCallback((T Function(T) updater) {
+    stringValue.value = toJson(updater(value));
+  }, [stringValue, value]);
+
+  return (value, setValue);
 }

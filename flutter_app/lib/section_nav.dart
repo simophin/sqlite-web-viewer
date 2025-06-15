@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_app/console.dart';
 import 'package:flutter_app/query.dart';
+import 'package:flutter_app/shared_prefs.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -9,8 +13,11 @@ part 'section_nav.g.dart';
 @freezed
 abstract class NavItem with _$NavItem {
   const NavItem._();
+
   const factory NavItem.table({required String name}) = NavItemTable;
+
   const factory NavItem.view({required String name}) = NavItemView;
+
   const factory NavItem.console({required String id}) = NavItemConsole;
 
   factory NavItem.fromJson(Map<String, dynamic> json) =>
@@ -49,6 +56,15 @@ class SectionNav extends HookWidget {
       ),
     );
 
+    final (consoles, setConsoles) = useJsonPreference<List<ConsoleItem>>(
+      'console_list',
+      [const ConsoleItem(id: "1", name: "Query console")],
+      fromJson: (json) =>
+          (json as List).map((item) => ConsoleItem.fromJson(item)).toList(),
+      toJson: (items) =>
+          jsonEncode(items.map((item) => item.toJson()).toList()),
+    );
+
     if (results.error != null) {
       return Center(
         child: Text(
@@ -80,16 +96,10 @@ class SectionNav extends HookWidget {
               throw Exception('Unknown type in sqlite_master: ${row[1]}');
           }
 
-          final itemWidget = ListTile(
-            title: Text(label),
-            selected: selectedItem == navItem,
+          final itemWidget = _SectionItem(
+            label: label,
+            selected: selectedItem?.id == navItem.id,
             onTap: () => onItemSelected?.call(navItem),
-            titleTextStyle: Theme.of(context).textTheme.bodyMedium,
-            selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
-            selectedColor: Theme.of(context).colorScheme.onPrimaryContainer,
-            visualDensity: VisualDensity(
-              vertical: VisualDensity.minimumDensity,
-            ),
           );
 
           if (acc.lastOrNull?.$1 != groupLabel) {
@@ -102,20 +112,68 @@ class SectionNav extends HookWidget {
         })
         .expand((i) {
           final (label, items) = i;
-          return <Widget>[
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
-              child: Text(label, style: Theme.of(context).textTheme.labelMedium),
-            ),
-            ...items
-          ];
+          return <Widget>[_SectionGroupLabel(label: label), ...items];
         })
         .toList();
+
+    final consoleItems = [
+      _SectionGroupLabel(label: 'Consoles'),
+      ...consoles.map((console) {
+        return _SectionItem(
+          label: console.name,
+          selected: selectedItem is NavItemConsole &&
+              (selectedItem as NavItemConsole).id == console.id,
+          onTap: () => onItemSelected?.call(NavItem.console(id: console.id)),
+        );
+      }),
+    ];
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
+        children: [...consoleItems, ...children],
+      ),
+    );
+  }
+}
+
+class _SectionGroupLabel extends StatelessWidget {
+  final String label;
+
+  const _SectionGroupLabel({super.key, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+      child: Text(label, style: Theme.of(context).textTheme.labelMedium),
+    );
+  }
+}
+
+class _SectionItem extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final void Function() onTap;
+
+  const _SectionItem({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(label),
+      selected: selected,
+      onTap: onTap,
+      titleTextStyle: Theme.of(context).textTheme.bodyMedium,
+      selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
+      selectedColor: Theme.of(context).colorScheme.onPrimaryContainer,
+      visualDensity: VisualDensity(
+        vertical: VisualDensity.minimumDensity,
       ),
     );
   }
