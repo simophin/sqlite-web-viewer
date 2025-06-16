@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_app/console.dart';
 import 'package:flutter_app/highlighter.dart';
@@ -14,17 +12,25 @@ class QueryHistoryView extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (history, setHistory) = useJsonPreference(
+    final history = usePreference(
       'console_$consoleId',
       <ConsoleHistoryItem>[],
-      fromJson: (json) => (json as List)
-          .map((item) => ConsoleHistoryItem.fromJson(item))
-          .toList(),
-      toJson: (items) =>
-          jsonEncode(items.map((item) => item.toJson()).toList()),
+      jsonCodec: (
+        (items) => items.map((item) => item.toJson()).toList(),
+        (json) => (json as List)
+            .map((item) => ConsoleHistoryItem.fromJson(item))
+            .toList(),
+      ),
     );
 
-    final newQuery = usePreference<String>('console_draft_$consoleId', '');
+    final draft = usePreference<TextEditingValue>(
+      'console_${consoleId}_draft',
+      TextEditingValue(),
+      jsonCodec: (
+        (json) => TextEditingValue.fromJSON(json),
+        (value) => value.toJSON(),
+      ),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -36,16 +42,17 @@ class QueryHistoryView extends HookWidget {
               Expanded(
                 flex: 1,
                 child: ListView.separated(
-                  itemCount: history.length,
-                  itemBuilder: (_, index) => _HistoryItemView(history[index]),
+                  itemCount: history.value.length,
+                  itemBuilder: (_, index) =>
+                      _HistoryItemView(history.value[index]),
                   separatorBuilder: (context, index) => Divider(thickness: 1),
                 ),
               ),
               Expanded(
                 flex: 1,
                 child: SQLQueryEditor(
-                  query: newQuery.value,
-                  onQueryChanged: (v) => newQuery.value = v,
+                  query: draft.value,
+                  onQueryChanged: (value) => draft.value = value,
                 ),
               ),
             ],

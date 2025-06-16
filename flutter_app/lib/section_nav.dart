@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_app/console.dart';
 import 'package:flutter_app/query.dart';
@@ -56,13 +54,14 @@ class SectionNav extends HookWidget {
       ),
     );
 
-    final (consoles, setConsoles) = useJsonPreference<List<ConsoleItem>>(
+    final consoles = usePreference<List<ConsoleItem>>(
       'console_list',
       [const ConsoleItem(id: "1", name: "Query console")],
-      fromJson: (json) =>
-          (json as List).map((item) => ConsoleItem.fromJson(item)).toList(),
-      toJson: (items) =>
-          jsonEncode(items.map((item) => item.toJson()).toList()),
+      jsonCodec: (
+        (json) =>
+            (json as List).map((item) => ConsoleItem.fromJson(item)).toList(),
+        (items) => items.map((item) => item.toJson()).toList(),
+      ),
     );
 
     if (results.error != null) {
@@ -118,10 +117,11 @@ class SectionNav extends HookWidget {
 
     final consoleItems = [
       _SectionGroupLabel(label: 'Consoles'),
-      ...consoles.map((console) {
+      ...consoles.value.map((console) {
         return _SectionItem(
           label: console.name,
-          selected: selectedItem is NavItemConsole &&
+          selected:
+              selectedItem is NavItemConsole &&
               (selectedItem as NavItemConsole).id == console.id,
           onTap: () => onItemSelected?.call(NavItem.console(id: console.id)),
         );
@@ -172,9 +172,7 @@ class _SectionItem extends StatelessWidget {
       titleTextStyle: Theme.of(context).textTheme.bodyMedium,
       selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
       selectedColor: Theme.of(context).colorScheme.onPrimaryContainer,
-      visualDensity: VisualDensity(
-        vertical: VisualDensity.minimumDensity,
-      ),
+      visualDensity: VisualDensity(vertical: VisualDensity.minimumDensity),
     );
   }
 }

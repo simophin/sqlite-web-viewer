@@ -27,11 +27,11 @@ class SQLEditingController extends TextEditingController {
   set highlighter(Highlighter? value) {
     if (value != _highlighter) {
       _highlighter = value;
-      notifyListeners();
     }
   }
 
-  SQLEditingController({super.text});
+  SQLEditingController.fromValue(TextEditingValue super.value)
+    : super.fromValue();
 
   @override
   TextSpan buildTextSpan({
