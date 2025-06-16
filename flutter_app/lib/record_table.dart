@@ -86,51 +86,51 @@ class RecordTable<CellType> extends HookWidget {
     final locale = Localizations.localeOf(context);
 
     final measures = useMemoized(
-      () => columnSampleTexts.fold(
+      () => columnSampleTexts.foldIndexed(
         _TableMeasurements(columnWidths: [], columnHeaderHeight: 0),
-        (m, colTexts) {
+        (columnIndex, m, colTexts) {
           final headerTextStyle = textStyle.copyWith(
             fontWeight: FontWeight.w600,
           );
-          final (maxWidth, maxHeight) = colTexts.foldIndexed(
-            (_minColumnWidth, 0.0),
-            (columnIndex, acc, text) {
-              final isPrimaryKeyColumn = primaryKeyColumns.contains(
-                columns[columnIndex],
+          final (maxWidth, maxHeight) = colTexts.fold((_minColumnWidth, 0.0), (
+            acc,
+            text,
+          ) {
+            final isPrimaryKeyColumn = primaryKeyColumns.contains(
+              columns[columnIndex],
+            );
+
+            final painter = TextPainter(
+              textDirection: textDirection,
+              textAlign: TextAlign.start,
+              text: TextSpan(text: text, style: headerTextStyle),
+              maxLines: 1,
+              textScaler: textScaler,
+              locale: locale,
+              ellipsis: "...",
+              strutStyle: StrutStyle.fromTextStyle(headerTextStyle),
+            )..layout(minWidth: _minColumnWidth, maxWidth: _maxColumnWidth);
+
+            try {
+              return (
+                max(
+                  acc.$1,
+                  min(_maxColumnWidth, painter.maxIntrinsicWidth) +
+                      columnHeaderPaddings.horizontal +
+                      (isPrimaryKeyColumn
+                          ? (_primaryKeyIconGap + _primaryKeyIconSize)
+                          : 0.0) + // Extra space for primary key icon
+                      2.0,
+                ), // +2 for the border
+                max(
+                  acc.$2,
+                  painter.height + columnHeaderPaddings.vertical,
+                ), // +2 for the border
               );
-
-              final painter = TextPainter(
-                textDirection: textDirection,
-                textAlign: TextAlign.start,
-                text: TextSpan(text: text, style: headerTextStyle),
-                maxLines: 1,
-                textScaler: textScaler,
-                locale: locale,
-                ellipsis: "...",
-                strutStyle: StrutStyle.fromTextStyle(headerTextStyle),
-              )..layout(minWidth: _minColumnWidth, maxWidth: _maxColumnWidth);
-
-              try {
-                return (
-                  max(
-                    acc.$1,
-                    min(_maxColumnWidth, painter.maxIntrinsicWidth) +
-                        columnHeaderPaddings.horizontal +
-                        (isPrimaryKeyColumn
-                            ? (_primaryKeyIconGap + _primaryKeyIconSize)
-                            : 0.0) + // Extra space for primary key icon
-                        2.0,
-                  ), // +2 for the border
-                  max(
-                    acc.$2,
-                    painter.height + columnHeaderPaddings.vertical,
-                  ), // +2 for the border
-                );
-              } finally {
-                painter.dispose();
-              }
-            },
-          );
+            } finally {
+              painter.dispose();
+            }
+          });
 
           m.columnWidths.add(maxWidth);
           if (maxHeight > m.columnHeaderHeight) {
@@ -207,11 +207,11 @@ class RecordTable<CellType> extends HookWidget {
           columnBuilder: (ctx, column) {
             final isSelected =
                 selectedCell != null &&
-                    selectedCell!.rowIndex == row &&
-                    selectedCell!.columnIndex == column;
-            
+                selectedCell!.rowIndex == row &&
+                selectedCell!.columnIndex == column;
+
             final (text, style) = cellValue(ctx, row, column);
-            
+
             return _CellView(
               text: text,
               textStyle: textStyle.merge(style),
@@ -246,7 +246,9 @@ class RecordTable<CellType> extends HookWidget {
           clipBehavior: Clip.hardEdge,
           child: Stack(
             children: [
-              Positioned.fill(child: FadingEdgeScrollView.fromScrollView(child: body)),
+              Positioned.fill(
+                child: FadingEdgeScrollView.fromScrollView(child: body),
+              ),
               header,
             ],
           ),
@@ -347,7 +349,7 @@ class _CellView extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final focusNode = useFocusNode(descendantsAreFocusable: false);
-    
+
     return InkWell(
       onTap: () {
         focusNode.requestFocus();
@@ -358,7 +360,9 @@ class _CellView extends HookWidget {
       child: Container(
         padding: paddings,
         decoration: BoxDecoration(
-          color: selected ? Theme.of(context).colorScheme.primaryContainer : null,
+          color: selected
+              ? Theme.of(context).colorScheme.primaryContainer
+              : null,
         ),
         alignment: Alignment.centerLeft,
         child: Text(

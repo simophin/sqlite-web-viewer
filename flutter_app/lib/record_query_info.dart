@@ -124,3 +124,27 @@ class TableRecordQueryInfo implements RecordQueryInfo {
   @override
   int get hashCode => tableName.hashCode;
 }
+
+class SingleSQLQueryInfo implements RecordQueryInfo {
+  final SQLQuery q;
+
+  const SingleSQLQueryInfo(this.q);
+
+  @override
+  bool get canPaginate => false;
+
+  @override
+  bool get canSort => false;
+
+  @override
+  ColumnMetaQuery? get columnMetaQuery => null;
+
+  @override
+  SQLQuery query({
+    Pagination? pagination,
+    List<Sort>? sorts,
+    bool? forCount = false,
+  }) {
+    return q;
+  }
+}

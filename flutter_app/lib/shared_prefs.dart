@@ -9,8 +9,7 @@ part 'shared_prefs.freezed.dart';
 
 @freezed
 abstract class _PreferenceState<T> with _$PreferenceState<T> {
-  const factory _PreferenceState.loading({required T fallbackValue}) =
-      _LoadingState<T>;
+  const factory _PreferenceState.loading() = _LoadingState<T>;
   const factory _PreferenceState.initialLoaded({required T value}) =
       _LoadedState<T>;
   const factory _PreferenceState.updated({required T value}) = _UpdatedState<T>;
@@ -21,9 +20,7 @@ ValueNotifier<T> usePreference<T>(
   T initialValue, {
   (T Function(dynamic), dynamic Function(T))? jsonCodec,
 }) {
-  final v = useState<_PreferenceState<T>>(
-    _PreferenceState.loading(fallbackValue: initialValue),
-  );
+  final v = useState<_PreferenceState<T>>(_PreferenceState.loading());
   final userValue = useValueNotifier(initialValue);
   final prefs = useMemoized(() => SharedPreferencesAsync(), []);
 
@@ -73,8 +70,9 @@ ValueNotifier<T> usePreference<T>(
   useEffect(() {
     // The only update that will trigger saving to SharedPreferences is
     // when it's updated by the user
-    final updatedValue = (debouncedValue is _UpdatedState<T>) ? 
-        debouncedValue.value : null;
+    final updatedValue = (debouncedValue is _UpdatedState<T>)
+        ? debouncedValue.value
+        : null;
     if (updatedValue == null) {
       return null;
     }

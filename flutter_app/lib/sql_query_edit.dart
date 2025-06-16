@@ -6,11 +6,15 @@ import 'highlighter.dart';
 class SQLQueryEditor extends HookWidget {
   final TextEditingValue query;
   final void Function(TextEditingValue) onQueryChanged;
+  final void Function() onRunTapped;
+  final void Function() onClearTapped;
 
   const SQLQueryEditor({
     super.key,
     required this.query,
     required this.onQueryChanged,
+    required this.onRunTapped,
+    required this.onClearTapped,
   });
 
   @override
@@ -46,7 +50,6 @@ class SQLQueryEditor extends HookWidget {
           expands: true,
           style: const TextStyle(fontFamily: 'Monospace'),
           textAlign: TextAlign.start,
-          autofocus: true,
           textAlignVertical: TextAlignVertical.top,
           decoration: const InputDecoration(border: OutlineInputBorder()),
         ),
@@ -62,14 +65,14 @@ class SQLQueryEditor extends HookWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    onPressed: () {},
+                    onPressed: onRunTapped,
                     icon: Icon(
                       Icons.play_arrow,
                       color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: onClearTapped,
                     icon: Icon(
                       Icons.delete_sweep,
                       color: Theme.of(context).colorScheme.error,

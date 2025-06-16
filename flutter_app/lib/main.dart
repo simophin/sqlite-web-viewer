@@ -91,7 +91,10 @@ class MyHomePage extends HookWidget {
                     endpoint: endpoint,
                     queryInfo: TableRecordQueryInfo(name),
                   ),
-                  NavItemConsole(id: final id) => QueryHistoryView(id),
+                  NavItemConsole(id: final id) => QueryHistoryView(
+                    id,
+                    endpoint: endpoint,
+                  ),
                   _ => const Text('No item selected'),
                 },
               ),
