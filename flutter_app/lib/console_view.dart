@@ -55,9 +55,8 @@ class QueryHistoryView extends HookWidget {
           ),
         ];
       }
-      
+
       currentQueryManuallyTyped.value = true;
-      
     }, []);
 
     final onHistoryItemTapped = useCallback((ConsoleHistoryItem item) {
@@ -77,6 +76,16 @@ class QueryHistoryView extends HookWidget {
             children: [
               Expanded(
                 flex: 1,
+                child: SQLQueryEditor(
+                  query: draft.value,
+                  onQueryChanged: (value) => draft.value = value,
+                  onClearTapped: () => draft.value = const TextEditingValue(),
+                  onRunTapped: onRunTapped,
+                ),
+              ),
+              const SizedBox(width: 8.0),
+              Expanded(
+                flex: 1,
                 child: ListView.separated(
                   itemCount: history.value.length,
                   itemBuilder: (_, index) => _HistoryItemView(
@@ -84,17 +93,7 @@ class QueryHistoryView extends HookWidget {
                     onTap: onHistoryItemTapped,
                   ),
                   separatorBuilder: (context, index) =>
-                      Divider(thickness: 1, height: 2),
-                ),
-              ),
-              const SizedBox(width: 8.0),
-              Expanded(
-                flex: 1,
-                child: SQLQueryEditor(
-                  query: draft.value,
-                  onQueryChanged: (value) => draft.value = value,
-                  onClearTapped: () => draft.value = const TextEditingValue(),
-                  onRunTapped: onRunTapped,
+                      Divider(thickness: 1, height: 1),
                 ),
               ),
             ],

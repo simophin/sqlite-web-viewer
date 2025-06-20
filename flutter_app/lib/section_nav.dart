@@ -4,6 +4,7 @@ import 'package:flutter_app/query.dart';
 import 'package:flutter_app/shared_prefs.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 part 'section_nav.freezed.dart';
 part 'section_nav.g.dart';
@@ -124,8 +125,38 @@ class SectionNav extends HookWidget {
               selectedItem is NavItemConsole &&
               (selectedItem as NavItemConsole).id == console.id,
           onTap: () => onItemSelected?.call(NavItem.console(id: console.id)),
+          onRightClicked: (double x, double y) {
+            showMenu(
+              context: context,
+              position: RelativeRect.fromLTRB(x, y, 0, 0),
+              items: [
+                PopupMenuItem(
+                  onTap: () {
+                    consoles.value = consoles.value
+                        .where((c) => c.id != console.id)
+                        .toList();
+                  },
+                  child: Text('Delete console'),
+                ),
+              ],
+            );
+          },
         );
       }),
+      _SectionItem(
+        label: 'New console',
+        trailingIcon: Icons.add,
+        selected: false,
+        onTap: () {
+          consoles.value = [
+            ...consoles.value,
+            ConsoleItem(
+              id: Uuid().v4(),
+              name: findNewConsoleName(consoles.value),
+            ),
+          ];
+        },
+      ),
     ];
 
     return SingleChildScrollView(
@@ -134,6 +165,18 @@ class SectionNav extends HookWidget {
         children: [...consoleItems, ...children],
       ),
     );
+  }
+}
+
+String findNewConsoleName(List<ConsoleItem> consoles) {
+  final existingNames = consoles.map((c) => c.name).toSet();
+  var index = 1;
+  while (true) {
+    final newName = 'Query console $index';
+    if (!existingNames.contains(newName)) {
+      return newName;
+    }
+    index++;
   }
 }
 
@@ -155,24 +198,46 @@ class _SectionItem extends StatelessWidget {
   final String label;
   final bool selected;
   final void Function() onTap;
+  final IconData? trailingIcon;
+  final void Function(double x, double y)? onRightClicked;
 
   const _SectionItem({
     super.key,
     required this.label,
     required this.selected,
     required this.onTap,
+    this.trailingIcon,
+    this.onRightClicked,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    final tile = ListTile(
       title: Text(label),
       selected: selected,
       onTap: onTap,
+      trailing: trailingIcon != null
+          ? Icon(
+              trailingIcon,
+              size: 16,
+              color: Theme.of(context).colorScheme.primary,
+            )
+          : null,
       titleTextStyle: Theme.of(context).textTheme.bodyMedium,
       selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
       selectedColor: Theme.of(context).colorScheme.onPrimaryContainer,
       visualDensity: VisualDensity(vertical: VisualDensity.minimumDensity),
     );
+
+    if (onRightClicked != null) {
+      return GestureDetector(
+        onSecondaryTapDown: (evt) {
+          onRightClicked?.call(evt.localPosition.dx, evt.localPosition.dy);
+        },
+        child: tile,
+      );
+    } else {
+      return tile;
+    }
   }
 }
