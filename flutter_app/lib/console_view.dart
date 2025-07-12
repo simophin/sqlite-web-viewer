@@ -17,6 +17,8 @@ class QueryHistoryView extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    useAutomaticKeepAlive();
+
     final history = usePreference<List<ConsoleHistoryItem>>(
       'console_$consoleId',
       [],

@@ -6,94 +6,51 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uuid/uuid.dart';
 
-part 'section_nav.freezed.dart';
-part 'section_nav.g.dart';
-
-@freezed
-abstract class NavItem with _$NavItem {
-  const NavItem._();
-
-  const factory NavItem.table({required String name}) = NavItemTable;
-
-  const factory NavItem.view({required String name}) = NavItemView;
-
-  const factory NavItem.console({required String id}) = NavItemConsole;
-
-  factory NavItem.fromJson(Map<String, dynamic> json) =>
-      _$NavItemFromJson(json);
-
-  String get id {
-    return switch (this) {
-      NavItemTable(name: final name) => name,
-      NavItemView(name: final name) => name,
-      NavItemConsole(id: final id) => id,
-      _ => throw Exception('Unknown NavItem type: $this'),
-    };
-  }
-}
+import 'nav_item.dart';
 
 class SectionNav extends HookWidget {
-  final Uri endpoint;
+  final List<NavItem> navItems;
   final NavItem? selectedItem;
   final void Function(NavItem item)? onItemSelected;
 
   const SectionNav({
     super.key,
-    required this.endpoint,
+    required this.navItems,
     this.selectedItem,
     this.onItemSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    final results = useSingleQuery(
-      endpoint,
-      SQLQuery(
-        sql:
-            "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') ORDER BY type, name",
-        params: [],
-      ),
-    );
+    // if (results.error != null) {
+    //   return Center(
+    //     child: Text(
+    //       'Error: ${results.error}',
+    //       style: const TextStyle(color: Colors.red),
+    //     ),
+    //   );
+    // }
+    //
+    // var data = results.data;
+    // if (data == null) {
+    //   return const Center(child: CircularProgressIndicator());
+    // }
 
-    final consoles = usePreference<List<ConsoleItem>>(
-      'console_list',
-      [const ConsoleItem(id: "1", name: "Query console")],
-      jsonCodec: (
-        (json) =>
-            (json as List).map((item) => ConsoleItem.fromJson(item)).toList(),
-        (items) => items.map((item) => item.toJson()).toList(),
-      ),
-    );
-
-    if (results.error != null) {
-      return Center(
-        child: Text(
-          'Error: ${results.error}',
-          style: const TextStyle(color: Colors.red),
-        ),
-      );
-    }
-
-    var data = results.data;
-    if (data == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final children = data.rows
-        .fold(<(String, List<Widget>)>[], (acc, row) {
+    final children = navItems
+        .fold(<(String, List<Widget>)>[], (acc, navItem) {
           final String groupLabel, label;
-          final NavItem navItem;
-          switch (row[1].toString()) {
-            case 'table':
+          switch (navItem) {
+            case NavItemTable(name: final name):
               groupLabel = 'Tables';
-              label = row[0].toString();
-              navItem = NavItem.table(name: label);
-            case 'view':
+              label = name;
+            case NavItemView(name: final name):
               groupLabel = 'Views';
-              label = row[0].toString();
-              navItem = NavItem.view(name: label);
+              label = name;
+            case NavItemConsole(id: final name):
+              groupLabel = 'Consoles';
+              label = name;
             default:
-              throw Exception('Unknown type in sqlite_master: ${row[1]}');
+              throw Exception('Unknown NavItem type: $navItem');
           }
 
           final itemWidget = _SectionItem(
@@ -116,53 +73,58 @@ class SectionNav extends HookWidget {
         })
         .toList();
 
-    final consoleItems = [
-      _SectionGroupLabel(label: 'Consoles'),
-      ...consoles.value.map((console) {
-        return _SectionItem(
-          label: console.name,
-          selected:
-              selectedItem is NavItemConsole &&
-              (selectedItem as NavItemConsole).id == console.id,
-          onTap: () => onItemSelected?.call(NavItem.console(id: console.id)),
-          onRightClicked: (double x, double y) {
-            showMenu(
-              context: context,
-              position: RelativeRect.fromLTRB(x, y, 0, 0),
-              items: [
-                PopupMenuItem(
-                  onTap: () {
-                    consoles.value = consoles.value
-                        .where((c) => c.id != console.id)
-                        .toList();
-                  },
-                  child: Text('Delete console'),
-                ),
-              ],
-            );
-          },
-        );
-      }),
-      _SectionItem(
-        label: 'New console',
-        trailingIcon: Icons.add,
-        selected: false,
-        onTap: () {
-          consoles.value = [
-            ...consoles.value,
-            ConsoleItem(
-              id: Uuid().v4(),
-              name: findNewConsoleName(consoles.value),
-            ),
-          ];
-        },
-      ),
-    ];
+    // final consoleItems = [
+    //   _SectionGroupLabel(label: 'Consoles'),
+    //   ...consoles.value.map((console) {
+    //     return _SectionItem.withHoveredActions(
+    //       label: console.name,
+    //       selected:
+    //           selectedItem is NavItemConsole &&
+    //           (selectedItem as NavItemConsole).id == console.id,
+    //       onTap: () => onItemSelected?.call(NavItem.console(id: console.id)),
+    //       hoveredTrailing: () => Row(
+    //         mainAxisSize: MainAxisSize.min,
+    //         children: [
+    //           IconButton(
+    //             icon: const Icon(Icons.edit, size: 16),
+    //             onPressed: () {},
+    //           ),
+    //           const SizedBox(width: 4),
+    //           IconButton(
+    //             icon: const Icon(Icons.delete, size: 16),
+    //             onPressed: () {
+    //               consoles.value = consoles.value
+    //                   .where((item) => item.id != console.id)
+    //                   .toList();
+    //               // if (selectedItem is NavItemConsole &&
+    //               //     (selectedItem as NavItemConsole).id == console.id) {
+    //               //   onItemSelected?.call(consoles.value.first);
+    //               // }
+    //             },
+    //           ),
+    //         ],
+    //       ),
+    //     );
+    //   }),
+    //   _SectionItem(
+    //     label: 'New console',
+    //     selected: false,
+    //     trailing: (_) => const Icon(Icons.add, size: 16),
+    //     onTap: () {
+    //       var newItem = ConsoleItem(
+    //         id: Uuid().v4(),
+    //         name: findNewConsoleName(consoles.value),
+    //       );
+    //       consoles.value = [...consoles.value, newItem];
+    //       onItemSelected?.call(NavItem.console(id: newItem.id));
+    //     },
+    //   ),
+    // ];
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [...consoleItems, ...children],
+        children: children,
       ),
     );
   }
@@ -194,46 +156,53 @@ class _SectionGroupLabel extends StatelessWidget {
   }
 }
 
-class _SectionItem extends StatelessWidget {
+class _SectionItem extends HookWidget {
   final String label;
   final bool selected;
   final void Function() onTap;
-  final IconData? trailingIcon;
-  final void Function(double x, double y)? onRightClicked;
+  final Widget? Function(bool hovered)? trailing;
 
   const _SectionItem({
     super.key,
     required this.label,
     required this.selected,
     required this.onTap,
-    this.trailingIcon,
-    this.onRightClicked,
+    this.trailing,
   });
+
+  factory _SectionItem.withHoveredActions({
+    required String label,
+    required bool selected,
+    required void Function() onTap,
+    required Widget Function() hoveredTrailing,
+  }) {
+    return _SectionItem(
+      label: label,
+      selected: selected,
+      onTap: onTap,
+      trailing: (hovered) => hovered ? hoveredTrailing() : null,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final hovered = useState(false);
+
     final tile = ListTile(
       title: Text(label),
       selected: selected,
       onTap: onTap,
-      trailing: trailingIcon != null
-          ? Icon(
-              trailingIcon,
-              size: 16,
-              color: Theme.of(context).colorScheme.primary,
-            )
-          : null,
+      trailing: trailing?.call(hovered.value),
       titleTextStyle: Theme.of(context).textTheme.bodyMedium,
       selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
       selectedColor: Theme.of(context).colorScheme.onPrimaryContainer,
       visualDensity: VisualDensity(vertical: VisualDensity.minimumDensity),
     );
 
-    if (onRightClicked != null) {
-      return GestureDetector(
-        onSecondaryTapDown: (evt) {
-          onRightClicked?.call(evt.localPosition.dx, evt.localPosition.dy);
-        },
+    if (trailing != null) {
+      return MouseRegion(
+        onEnter: (_) => hovered.value = true,
+        onExit: (_) => hovered.value = false,
         child: tile,
       );
     } else {

@@ -74,6 +74,8 @@ class RecordBrowser extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    useAutomaticKeepAlive();
+
     final pageIndex = useState(0);
     final pageSize = useState(100);
     final results = useQueries(
@@ -121,9 +123,11 @@ class RecordBrowser extends HookWidget {
         selectedCell.value != null &&
             selectedCell.value!.rowIndex < mainResults.rows.length &&
             selectedCell.value!.columnIndex < mainResults.columns.length
-        ? [mainResults.rows[selectedCell.value!.rowIndex][selectedCell
-              .value!
-              .columnIndex]]
+        ? [
+            mainResults.rows[selectedCell.value!.rowIndex][selectedCell
+                .value!
+                .columnIndex],
+          ]
         : null;
 
     final selectedColumnMeta = selectedCell.value != null
@@ -193,10 +197,7 @@ class _ValueDisplayPanel extends HookWidget {
           if (meta is ColumnMetaPrimaryKey) {
             return _ColumnMetaRow(label: 'Primary key', value: 'Yes');
           } else if (meta is ColumnMetaExtra) {
-            return _ColumnMetaRow(
-              label: meta.label,
-              value: meta.value,
-            );
+            return _ColumnMetaRow(label: meta.label, value: meta.value);
           } else {
             throw Exception('Unknown ColumnMeta type: ${meta.runtimeType}');
           }
@@ -205,10 +206,7 @@ class _ValueDisplayPanel extends HookWidget {
         // Value display row
         _ColumnMetaRow(label: 'Value', value: ''),
 
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: ValueDisplay(value),
-        ),
+        Padding(padding: const EdgeInsets.all(8.0), child: ValueDisplay(value)),
       ],
     );
   }
@@ -218,11 +216,7 @@ class _ColumnMetaRow extends HookWidget {
   final String label;
   final String value;
 
-  const _ColumnMetaRow({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const _ColumnMetaRow({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
