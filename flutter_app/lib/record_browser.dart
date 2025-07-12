@@ -78,6 +78,11 @@ class RecordBrowser extends HookWidget {
 
     final pageIndex = useState(0);
     final pageSize = useState(100);
+    final manualRefreshAt = useState(0);
+    final refresh = useCallback(() {
+      manualRefreshAt.value = DateTime.timestamp().millisecondsSinceEpoch;
+    }, []);
+
     final results = useQueries(
       endpoint,
       _QueryInfoRequestProvider.fromQueryInfo(
@@ -85,6 +90,7 @@ class RecordBrowser extends HookWidget {
         currentPageIndex: pageIndex.value,
         pageSize: pageSize.value,
       ),
+      deps: [manualRefreshAt.value],
     );
     final selectedCell = useState<Cell?>(null);
 
@@ -140,17 +146,54 @@ class RecordBrowser extends HookWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Expanded(
-          child: RecordTable(
-            columns: mainResults.columns.map((x) => x.name).toList(),
-            primaryKeyColumns: primaryKeys,
-            rowCount: mainResults.rows.length,
-            textStyle: themeData.textTheme.bodySmall!,
-            selectedCell: selectedCell.value,
-            onCellSelected: (cell) => selectedCell.value = cell,
-            cellValue: (ctx, rowIndex, columnIndex) {
-              final cellValue = mainResults.rows[rowIndex][columnIndex];
-              return formatCellValue(cellValue, theme: themeData);
-            },
+          child: Column(
+            children: [
+              // Display the execution time, time query was run, and rerun button
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: themeData.colorScheme.surfaceContainerLow,
+                  border: Border.all(
+                    color: themeData.colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      onPressed: refresh,
+                      icon: const Icon(Icons.refresh_outlined),
+                      iconSize: 16,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    const SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        'Executed in ${data.data.executionTimeUs / 1000} ms',
+                        style: themeData.textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              Expanded(
+                child: RecordTable(
+                  columns: mainResults.columns.map((x) => x.name).toList(),
+                  primaryKeyColumns: primaryKeys,
+                  rowCount: mainResults.rows.length,
+                  textStyle: themeData.textTheme.bodySmall!,
+                  selectedCell: selectedCell.value,
+                  onCellSelected: (cell) => selectedCell.value = cell,
+                  cellValue: (ctx, rowIndex, columnIndex) {
+                    final cellValue = mainResults.rows[rowIndex][columnIndex];
+                    return formatCellValue(cellValue, theme: themeData);
+                  },
+                ),
+              ),
+            ],
           ),
         ),
         if (selectedCellValue != null) ...[

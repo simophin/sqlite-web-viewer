@@ -90,15 +90,16 @@ abstract class UseQueryResults<T> with _$UseQueryResults<T> {
 
 AsyncSnapshot<UseQueryResults<T>> useQueries<T extends RequestProvider>(
   Uri uri,
-  T request,
-) {
+  T request, {
+  List<Object> deps = const [],
+}) {
   final realRequest = request.request;
   final fut = useMemoized(() async {
     return UseQueryResults(
       data: await fetchQueryResults(uri, realRequest),
       request: request,
     );
-  }, [uri, realRequest]);
+  }, [uri, realRequest, ...deps]);
 
   return useFuture(fut);
 }
