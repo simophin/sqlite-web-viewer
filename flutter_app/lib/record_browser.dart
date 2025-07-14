@@ -5,6 +5,7 @@ import 'package:flutter_app/record_table.dart';
 import 'package:flutter_app/value_display.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:intl/intl.dart';
 
 import 'record_query_info.dart';
 
@@ -147,19 +148,20 @@ class RecordBrowser extends HookWidget {
       children: <Widget>[
         Expanded(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Display the execution time, time query was run, and rerun button
               Container(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 decoration: BoxDecoration(
                   color: themeData.colorScheme.surfaceContainerLow,
                   border: Border.all(
                     color: themeData.colorScheme.outlineVariant,
                   ),
-                  borderRadius: BorderRadius.circular(8.0),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
                       onPressed: refresh,
@@ -168,12 +170,10 @@ class RecordBrowser extends HookWidget {
                       visualDensity: VisualDensity.compact,
                     ),
                     const SizedBox(width: 8.0),
-                    Expanded(
-                      child: Text(
-                        'Executed in ${data.data.executionTimeUs / 1000} ms',
-                        style: themeData.textTheme.bodySmall,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Text(
+                      'Executed in ${formatExecutionTime(data.data.executionTimeUs)}, last updated ${formatLastUpdated(data.timestamp)}',
+                      style: themeData.textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -216,6 +216,20 @@ class RecordBrowser extends HookWidget {
       ],
     );
   }
+}
+
+String formatExecutionTime(int timeUs) {
+  if (timeUs < 1000) {
+    return '$timeUs μs';
+  } else if (timeUs < 1_000_000) {
+    return '${(timeUs / 1000).toStringAsFixed(2)} ms';
+  } else {
+    return '${(timeUs / 1_000_000).toStringAsFixed(2)} s';
+  }
+}
+
+String formatLastUpdated(DateTime dateTime) {
+  return DateFormat.jms().format(dateTime);
 }
 
 class _ValueDisplayPanel extends HookWidget {

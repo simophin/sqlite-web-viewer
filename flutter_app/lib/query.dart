@@ -85,6 +85,7 @@ abstract class UseQueryResults<T> with _$UseQueryResults<T> {
   const factory UseQueryResults({
     required QueryResults data,
     required T request,
+    required DateTime timestamp,
   }) = _UseQueryResults;
 }
 
@@ -98,6 +99,7 @@ AsyncSnapshot<UseQueryResults<T>> useQueries<T extends RequestProvider>(
     return UseQueryResults(
       data: await fetchQueryResults(uri, realRequest),
       request: request,
+      timestamp: DateTime.now(),
     );
   }, [uri, realRequest, ...deps]);
 
