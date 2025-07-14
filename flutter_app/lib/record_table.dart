@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app/record_query_info.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -32,6 +33,8 @@ abstract class Cell with _$Cell {
 class RecordTable<CellType> extends HookWidget {
   final List<String> columns;
   final List<String> primaryKeyColumns;
+  final List<Sort> sorts;
+  final void Function(String columnName, Sort? currentSort)? onSortChanged;
   final int rowCount;
   final (String, TextStyle?) Function(
     BuildContext context,
@@ -53,6 +56,8 @@ class RecordTable<CellType> extends HookWidget {
     required this.rowCount,
     required this.cellValue,
     required this.primaryKeyColumns,
+    required this.sorts,
+    this.onSortChanged,
     this.selectedCell,
     this.onCellSelected,
     this.textStyle = const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
@@ -99,6 +104,9 @@ class RecordTable<CellType> extends HookWidget {
             final isPrimaryKeyColumn = primaryKeyColumns.contains(
               columns[columnIndex],
             );
+            final hasSorting = sorts.any(
+              (sort) => sort.column == columns[columnIndex],
+            );
 
             final painter = TextPainter(
               textDirection: textDirection,
@@ -120,8 +128,11 @@ class RecordTable<CellType> extends HookWidget {
                       (isPrimaryKeyColumn
                           ? (_primaryKeyIconGap + _primaryKeyIconSize)
                           : 0.0) + // Extra space for primary key icon
-                      2.0,
-                ), // +2 for the border
+                      (hasSorting
+                          ? 20.0
+                          : 0.0) + // Extra space for sorting icon
+                      2.0, // +2 for the border
+                ),
                 max(
                   acc.$2,
                   painter.height + columnHeaderPaddings.vertical,
@@ -162,12 +173,17 @@ class RecordTable<CellType> extends HookWidget {
         showBottomBorder: true,
         showTopBorder: true,
         columnBuilder: (ctx, i) {
-          final Widget child;
+          final currentColumn = columns[i];
+          final columnSort = sorts.firstWhereOrNull(
+            (sort) => sort.column == currentColumn,
+          );
 
-          if (primaryKeyColumns.contains(columns[i])) {
-            child = RichText(
-              text: TextSpan(
-                children: [
+          final text = RichText(
+            text: TextSpan(
+              text: '',
+              style: _headerTextStyle,
+              children: [
+                if (primaryKeyColumns.contains(currentColumn)) ...[
                   WidgetSpan(
                     child: Icon(
                       Icons.key,
@@ -180,21 +196,53 @@ class RecordTable<CellType> extends HookWidget {
                       width: _primaryKeyIconGap,
                     ), // Gap after the icon
                   ),
-                  TextSpan(text: columns[i], style: _headerTextStyle),
                 ],
+                TextSpan(text: currentColumn),
+                if (columnSort != null) ...[
+                  const WidgetSpan(
+                    child: SizedBox(
+                      width: _primaryKeyIconGap,
+                    ), // Gap after the icon
+                  ),
+                  WidgetSpan(
+                    child: Icon(
+                      columnSort.ascending
+                          ? Icons.arrow_drop_up
+                          : Icons.arrow_drop_down,
+                      size: 16.0,
+                      color: textStyle.color,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            textAlign: TextAlign.start,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          );
+
+          final child = Container(
+            padding: columnHeaderPaddings,
+            child: columnSort != null
+                ? Tooltip(
+                    message:
+                        'Sorted by ${columnSort.ascending ? 'ascending' : 'descending'}',
+                    child: text,
+                  )
+                : text,
+          );
+
+          if (onSortChanged != null) {
+            return MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => onSortChanged!(currentColumn, columnSort),
+                child: child,
               ),
             );
           } else {
-            child = Text(
-              columns[i],
-              style: _headerTextStyle,
-              textAlign: TextAlign.start,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            );
+            return child;
           }
-
-          return Container(padding: columnHeaderPaddings, child: child);
         },
       ),
     );

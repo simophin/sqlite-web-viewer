@@ -61,6 +61,7 @@ class MyHomePage extends HookWidget {
         params: [],
       ),
     );
+
     final navItems = useMemoized(() {
       if (results.error != null) {
         return <NavItem>[];
@@ -113,10 +114,14 @@ class MyHomePage extends HookWidget {
             NavItemTable(name: final name) => RecordBrowser(
               endpoint: endpoint,
               queryInfo: TableRecordQueryInfo(name),
+              onRunInConsole: (query) {
+
+              },
             ),
             NavItemView(name: final name) => RecordBrowser(
               endpoint: endpoint,
               queryInfo: TableRecordQueryInfo(name),
+              onRunInConsole: (query) {},
             ),
             NavItemConsole(name: final name) => QueryHistoryView(
               name,

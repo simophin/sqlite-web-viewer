@@ -95,19 +95,19 @@ class TableRecordQueryInfo implements RecordQueryInfo {
     final query = StringBuffer(baseQuery);
 
     if (sorts != null && sorts.isNotEmpty) {
-      query.write(' ORDER BY ');
+      query.write('\nORDER BY ');
       query.write(
         sorts
-            .map((sort) => '${sort.column} ${sort.ascending ? 'ASC' : 'DESC'}')
+            .map((sort) => '`${sort.column}` ${sort.ascending ? 'ASC' : 'DESC'}')
             .join(', '),
       );
     }
 
     if (pagination != null) {
       if (pagination.offset != null) {
-        query.write(' LIMIT ${pagination.offset}, ${pagination.limit}');
+        query.write('\nLIMIT ${pagination.offset}, ${pagination.limit}');
       } else {
-        query.write(' LIMIT ${pagination.limit}');
+        query.write('\nLIMIT ${pagination.limit}');
       }
     }
 

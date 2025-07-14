@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/cell_value.dart';
 import 'package:flutter_app/query.dart';
 import 'package:flutter_app/record_table.dart';
+import 'package:flutter_app/sql_viewer.dart';
 import 'package:flutter_app/value_display.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -28,6 +29,7 @@ abstract class _QueryInfoRequestProvider
     RecordQueryInfo queryInfo, {
     required int currentPageIndex,
     required int pageSize,
+    required List<Sort> sorts,
   }) {
     final queries = <SQLQuery>[];
     int? columnMetaQueryIndex;
@@ -35,7 +37,7 @@ abstract class _QueryInfoRequestProvider
 
     if (queryInfo.canPaginate) {
       countQueryIndex = queries.length;
-      queries.add(queryInfo.query(forCount: true));
+      queries.add(queryInfo.query(forCount: true, sorts: sorts));
     }
 
     if (queryInfo.columnMetaQuery != null) {
@@ -50,6 +52,7 @@ abstract class _QueryInfoRequestProvider
           offset: currentPageIndex * pageSize,
           limit: pageSize,
         ),
+        sorts: sorts,
       ),
     );
 
@@ -66,11 +69,13 @@ abstract class _QueryInfoRequestProvider
 class RecordBrowser extends HookWidget {
   final Uri endpoint;
   final RecordQueryInfo queryInfo;
+  final void Function(SQLQuery)? onRunInConsole;
 
   const RecordBrowser({
     super.key,
     required this.endpoint,
     required this.queryInfo,
+    this.onRunInConsole,
   });
 
   @override
@@ -83,6 +88,7 @@ class RecordBrowser extends HookWidget {
     final refresh = useCallback(() {
       manualRefreshAt.value = DateTime.timestamp().millisecondsSinceEpoch;
     }, []);
+    final sorts = useState<List<Sort>>([]);
 
     final results = useQueries(
       endpoint,
@@ -90,6 +96,7 @@ class RecordBrowser extends HookWidget {
         queryInfo,
         currentPageIndex: pageIndex.value,
         pageSize: pageSize.value,
+        sorts: sorts.value,
       ),
       deps: [manualRefreshAt.value],
     );
@@ -108,11 +115,6 @@ class RecordBrowser extends HookWidget {
     if (data == null) {
       return const Center(child: CircularProgressIndicator());
     }
-
-    final countQueryIndex = data.request.countQueryIndex;
-    final totalRecordCount = countQueryIndex != null
-        ? data.data.results[countQueryIndex].rows.first.first as int
-        : 0;
 
     final mainResults = data.data.results[data.request.mainQueryIndex];
     final columnMetas = data.request.columnMetaQueryIndex != null
@@ -143,6 +145,9 @@ class RecordBrowser extends HookWidget {
         ? columnMetas[mainResults.columns[selectedCell.value!.columnIndex].name]
         : null;
 
+    final mainQuerySql =
+        data.request.request.queries[data.request.mainQueryIndex].sql;
+
     var themeData = Theme.of(context);
 
     return Row(
@@ -153,50 +158,22 @@ class RecordBrowser extends HookWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Display the execution time, time query was run, and rerun button
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: themeData.colorScheme.surfaceContainerLow,
-                  border: Border.all(
-                    color: themeData.colorScheme.outlineVariant,
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: refresh,
-                      icon: const Icon(Icons.refresh_outlined),
-                      iconSize: 16,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        text: '',
-                        style: themeData.textTheme.bodySmall,
-                        children: [
-                          TextSpan(
-                              text: formatRecordCount(totalRecordCount),
-                              style: TextStyle(fontWeight: FontWeight.bold)
-                          ),
-                          const TextSpan(text: ' record(s) in '),
-                          TextSpan(
-                            text: formatExecutionTime(data.data.executionTimeUs),
-                            style: TextStyle(fontWeight: FontWeight.bold)
-                          ),
-                          const TextSpan(text: ' at '),
-                          TextSpan(
-                            text: formatLastUpdated(data.timestamp),
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+              _buildSQLViewBox(
+                themeData,
+                mainQuerySql,
+                refresh,
+                onRunInConsole != null
+                    ? () {
+                        onRunInConsole!(
+                          data.request.request.queries[data
+                              .request
+                              .mainQueryIndex],
+                        );
+                      }
+                    : null,
               ),
+              const SizedBox(height: 8.0),
+              _buildQueryInfoBox(themeData, data),
               const SizedBox(height: 8.0),
               Expanded(
                 child: RecordTable(
@@ -205,6 +182,16 @@ class RecordBrowser extends HookWidget {
                   rowCount: mainResults.rows.length,
                   textStyle: themeData.textTheme.bodySmall!,
                   selectedCell: selectedCell.value,
+                  sorts: sorts.value,
+                  onSortChanged: queryInfo.canSort
+                      ? (column, currSort) {
+                          sorts.value = updateSort(
+                            currSort,
+                            column,
+                            sorts.value,
+                          );
+                        }
+                      : null,
                   onCellSelected: (cell) {
                     if (selectedCell.value == cell) {
                       showValueDisplay.value = !showValueDisplay.value;
@@ -214,8 +201,10 @@ class RecordBrowser extends HookWidget {
                     }
                   },
                   cellValue: (ctx, rowIndex, columnIndex) {
-                    final cellValue = mainResults.rows[rowIndex][columnIndex];
-                    return formatCellValue(cellValue, theme: themeData);
+                    return formatCellValue(
+                      mainResults.rows[rowIndex][columnIndex],
+                      theme: themeData,
+                    );
                   },
                 ),
               ),
@@ -242,13 +231,139 @@ class RecordBrowser extends HookWidget {
       ],
     );
   }
+
+  List<Sort> updateSort(
+    Sort? currSort,
+    String column,
+    List<Sort> currentSorts,
+  ) {
+    final newSort = currSort == null
+        ? Sort(column: column, ascending: true)
+        : (currSort.ascending ? Sort(column: column, ascending: false) : null);
+
+    final newSorts = currentSorts.toList();
+    final existingSortIndex = newSorts.indexWhere(
+      (sort) => sort.column == column,
+    );
+
+    if (newSort != null && existingSortIndex != -1) {
+      // Replace existing sort
+      newSorts[existingSortIndex] = newSort;
+    } else if (newSort != null) {
+      newSorts.add(newSort);
+    } else if (existingSortIndex != -1) {
+      // Remove existing sort
+      newSorts.removeAt(existingSortIndex);
+    }
+    return newSorts;
+  }
+
+  Widget _buildInfoBox(ThemeData themeData, Widget child) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: themeData.colorScheme.surfaceContainerLow,
+        border: Border.all(color: themeData.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildSQLViewBox(
+    ThemeData themeData,
+    String sql,
+    void Function() onRefresh,
+    void Function()? onRunInConsole,
+  ) {
+    return _buildInfoBox(
+      themeData,
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 200, maxWidth: 500),
+            child: SingleChildScrollView(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SQLViewer(sql: sql),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8.0),
+          // Refresh button
+          IconButton(
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh_outlined),
+            iconSize: 16,
+            tooltip: 'Refresh',
+            visualDensity: VisualDensity.compact,
+          ),
+          // Run in console button
+          if (onRunInConsole != null)
+            IconButton(
+              onPressed: onRunInConsole,
+              icon: const Icon(Icons.play_arrow_outlined),
+              iconSize: 16,
+              tooltip: 'Run in console',
+              visualDensity: VisualDensity.compact,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQueryInfoBox(
+    ThemeData themeData,
+    UseQueryResults<_QueryInfoRequestProvider> data,
+  ) {
+    final countQueryIndex = data.request.countQueryIndex;
+    final totalRecordCount = countQueryIndex != null
+        ? data.data.results[countQueryIndex].rows.first.first as int
+        : 0;
+
+    return _buildInfoBox(
+      themeData,
+      RichText(
+        text: TextSpan(
+          text: '',
+          style: themeData.textTheme.bodySmall,
+          children: [
+            TextSpan(
+              text: _formatRecordCount(
+                data.data.results[data.request.mainQueryIndex].rows.length,
+              ),
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: ' rows(s) in '),
+            TextSpan(
+              text: _formatExecutionTime(data.data.executionTimeUs),
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: ' at '),
+            TextSpan(
+              text: _formatLastUpdated(data.timestamp),
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: '. Total record(s): '),
+            TextSpan(
+              text: _formatRecordCount(totalRecordCount),
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const TextSpan(text: '.'),
+          ],
+        ),
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
 }
 
-String formatRecordCount(int count) {
+String _formatRecordCount(int count) {
   return NumberFormat.decimalPattern().format(count);
 }
 
-String formatExecutionTime(int timeUs) {
+String _formatExecutionTime(int timeUs) {
   if (timeUs < 1_000_000) {
     return '${(timeUs / 1000).toStringAsFixed(2)} ms';
   } else {
@@ -256,7 +371,7 @@ String formatExecutionTime(int timeUs) {
   }
 }
 
-String formatLastUpdated(DateTime dateTime) {
+String _formatLastUpdated(DateTime dateTime) {
   return DateFormat.jms().format(dateTime);
 }
 
