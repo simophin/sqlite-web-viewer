@@ -97,6 +97,8 @@ class RecordBrowser extends HookWidget {
 
     useEffect(() => selectedCell.value = null, [queryInfo]);
 
+    final showValueDisplay = useState<bool>(false);
+
     if (results.hasError) {
       return Center(child: Text('Error: ${results.error}'));
     }
@@ -169,10 +171,27 @@ class RecordBrowser extends HookWidget {
                       iconSize: 16,
                       visualDensity: VisualDensity.compact,
                     ),
-                    const SizedBox(width: 8.0),
-                    Text(
-                      'Executed in ${formatExecutionTime(data.data.executionTimeUs)}, last updated ${formatLastUpdated(data.timestamp)}',
-                      style: themeData.textTheme.bodySmall,
+                    RichText(
+                      text: TextSpan(
+                        text: '',
+                        style: themeData.textTheme.bodySmall,
+                        children: [
+                          TextSpan(
+                              text: formatRecordCount(totalRecordCount),
+                              style: TextStyle(fontWeight: FontWeight.bold)
+                          ),
+                          const TextSpan(text: ' record(s) in '),
+                          TextSpan(
+                            text: formatExecutionTime(data.data.executionTimeUs),
+                            style: TextStyle(fontWeight: FontWeight.bold)
+                          ),
+                          const TextSpan(text: ' at '),
+                          TextSpan(
+                            text: formatLastUpdated(data.timestamp),
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -186,7 +205,14 @@ class RecordBrowser extends HookWidget {
                   rowCount: mainResults.rows.length,
                   textStyle: themeData.textTheme.bodySmall!,
                   selectedCell: selectedCell.value,
-                  onCellSelected: (cell) => selectedCell.value = cell,
+                  onCellSelected: (cell) {
+                    if (selectedCell.value == cell) {
+                      showValueDisplay.value = !showValueDisplay.value;
+                    } else {
+                      showValueDisplay.value = true;
+                      selectedCell.value = cell;
+                    }
+                  },
                   cellValue: (ctx, rowIndex, columnIndex) {
                     final cellValue = mainResults.rows[rowIndex][columnIndex];
                     return formatCellValue(cellValue, theme: themeData);
@@ -196,7 +222,7 @@ class RecordBrowser extends HookWidget {
             ],
           ),
         ),
-        if (selectedCellValue != null) ...[
+        if (selectedCellValue != null && showValueDisplay.value) ...[
           const SizedBox(width: 8.0),
           Container(
             width: 300,
@@ -218,10 +244,12 @@ class RecordBrowser extends HookWidget {
   }
 }
 
+String formatRecordCount(int count) {
+  return NumberFormat.decimalPattern().format(count);
+}
+
 String formatExecutionTime(int timeUs) {
-  if (timeUs < 1000) {
-    return '$timeUs μs';
-  } else if (timeUs < 1_000_000) {
+  if (timeUs < 1_000_000) {
     return '${(timeUs / 1000).toStringAsFixed(2)} ms';
   } else {
     return '${(timeUs / 1_000_000).toStringAsFixed(2)} s';
