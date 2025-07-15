@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/console_view.dart';
 import 'package:flutter_app/drag_handle.dart';
@@ -107,31 +108,6 @@ class MyHomePage extends HookWidget {
     }, [selectedNavItemId]);
     final navColumnWidth = usePreference('nav_column_width', 300.0);
 
-    final stackChildren = useMemoized(() {
-      return [
-        for (var item in navItems)
-          switch (item) {
-            NavItemTable(name: final name) => RecordBrowser(
-              endpoint: endpoint,
-              queryInfo: TableRecordQueryInfo(name),
-              onRunInConsole: (query) {
-
-              },
-            ),
-            NavItemView(name: final name) => RecordBrowser(
-              endpoint: endpoint,
-              queryInfo: TableRecordQueryInfo(name),
-              onRunInConsole: (query) {},
-            ),
-            NavItemConsole(name: final name) => QueryHistoryView(
-              name,
-              endpoint: endpoint,
-            ),
-            NavItem() => throw Exception('Unknown NavItem type: $item'),
-          },
-      ];
-    }, [navItems, endpoint]);
-
     return Scaffold(
       body: SizedBox.expand(
         child: Row(
@@ -165,7 +141,33 @@ class MyHomePage extends HookWidget {
                       )
                     : LazyLoadIndexedStack(
                         index: selectedNavItemIndex,
-                        children: stackChildren,
+                        children: navItems
+                            .mapIndexed<Widget>((index, item) {
+                              final child = switch (item) {
+                                NavItemTable(name: final name) => RecordBrowser(
+                                  endpoint: endpoint,
+                                  queryInfo: TableRecordQueryInfo(name),
+                                  onRunInConsole: (query) {},
+                                ),
+                                NavItemView(name: final name) => RecordBrowser(
+                                  endpoint: endpoint,
+                                  queryInfo: TableRecordQueryInfo(name),
+                                  onRunInConsole: (query) {},
+                                ),
+                                NavItemConsole(name: final name) =>
+                                  QueryHistoryView(name, endpoint: endpoint),
+
+                                NavItem() => throw Exception(
+                                  'Unknown NavItem type: $item',
+                                ),
+                              };
+
+                              return Offstage(
+                                offstage: index != selectedNavItemIndex,
+                                child: child,
+                              );
+                            })
+                            .toList(growable: false),
                       ),
               ),
             ),

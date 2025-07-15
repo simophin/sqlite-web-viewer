@@ -38,9 +38,11 @@ abstract class RecordQueryInfo {
 
   bool get canSort;
 
+  bool get supportsExtraWhereClause => false;
+
   ColumnMetaQuery? get columnMetaQuery;
 
-  SQLQuery query({Pagination? pagination, List<Sort>? sorts, bool? forCount});
+  SQLQuery query({Pagination? pagination, List<Sort>? sorts, bool? forCount, String? extraWhereClause});
 }
 
 class TableRecordQueryInfo implements RecordQueryInfo {
@@ -87,12 +89,17 @@ class TableRecordQueryInfo implements RecordQueryInfo {
     Pagination? pagination,
     List<Sort>? sorts,
     bool? forCount = false,
+    String? extraWhereClause,
   }) {
     final baseQuery = forCount == true
         ? 'SELECT COUNT(*) FROM $tableName'
         : 'SELECT * FROM $tableName';
 
     final query = StringBuffer(baseQuery);
+
+    if (extraWhereClause?.isNotEmpty == true) {
+      query.write('\nWHERE $extraWhereClause');
+    }
 
     if (sorts != null && sorts.isNotEmpty) {
       query.write('\nORDER BY ');
@@ -113,6 +120,9 @@ class TableRecordQueryInfo implements RecordQueryInfo {
 
     return SQLQuery(sql: query.toString(), params: []);
   }
+
+  @override
+  bool get supportsExtraWhereClause => true;
 
   @override
   bool operator ==(Object other) {
@@ -140,10 +150,14 @@ class SingleSQLQueryInfo implements RecordQueryInfo {
   ColumnMetaQuery? get columnMetaQuery => null;
 
   @override
+  bool get supportsExtraWhereClause => false;
+
+  @override
   SQLQuery query({
     Pagination? pagination,
     List<Sort>? sorts,
     bool? forCount = false,
+    String? extraWhereClause,
   }) {
     return q;
   }

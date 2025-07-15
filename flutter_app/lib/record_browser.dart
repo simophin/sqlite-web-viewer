@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/cell_value.dart';
+import 'package:flutter_app/highlighter.dart';
 import 'package:flutter_app/query.dart';
+import 'package:flutter_app/record_header_bar.dart';
 import 'package:flutter_app/record_table.dart';
 import 'package:flutter_app/sql_viewer.dart';
 import 'package:flutter_app/value_display.dart';
@@ -30,6 +32,7 @@ abstract class _QueryInfoRequestProvider
     required int currentPageIndex,
     required int pageSize,
     required List<Sort> sorts,
+    String? extraWhereClause,
   }) {
     final queries = <SQLQuery>[];
     int? columnMetaQueryIndex;
@@ -37,7 +40,13 @@ abstract class _QueryInfoRequestProvider
 
     if (queryInfo.canPaginate) {
       countQueryIndex = queries.length;
-      queries.add(queryInfo.query(forCount: true, sorts: sorts));
+      queries.add(
+        queryInfo.query(
+          forCount: true,
+          sorts: sorts,
+          extraWhereClause: extraWhereClause,
+        ),
+      );
     }
 
     if (queryInfo.columnMetaQuery != null) {
@@ -53,6 +62,7 @@ abstract class _QueryInfoRequestProvider
           limit: pageSize,
         ),
         sorts: sorts,
+        extraWhereClause: extraWhereClause,
       ),
     );
 
@@ -89,6 +99,7 @@ class RecordBrowser extends HookWidget {
       manualRefreshAt.value = DateTime.timestamp().millisecondsSinceEpoch;
     }, []);
     final sorts = useState<List<Sort>>([]);
+    final extraWhereClause = useState<String?>(null);
 
     final results = useQueries(
       endpoint,
@@ -97,6 +108,7 @@ class RecordBrowser extends HookWidget {
         currentPageIndex: pageIndex.value,
         pageSize: pageSize.value,
         sorts: sorts.value,
+        extraWhereClause: extraWhereClause.value,
       ),
       deps: [manualRefreshAt.value],
     );
@@ -106,128 +118,139 @@ class RecordBrowser extends HookWidget {
 
     final showValueDisplay = useState<bool>(false);
 
-    if (results.hasError) {
-      return Center(child: Text('Error: ${results.error}'));
-    }
+    final whereClauseController = useMemoized(
+      () => SQLEditingController.fromValue(TextEditingValue.empty),
+      const [],
+    );
+    final orderByClauseController = useMemoized(
+      () => SQLEditingController.fromValue(TextEditingValue.empty),
+      const [],
+    );
+
+    final Widget recordTable;
+    final List<Widget> valueDisplayPanel;
 
     final data = results.data;
+    final themeData = Theme.of(context);
 
-    if (data == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (results.hasError) {
+      recordTable = Center(child: Text('Error: ${results.error}'));
+      valueDisplayPanel = const [];
+    } else if (data == null) {
+      recordTable = const Center(child: CircularProgressIndicator());
+      valueDisplayPanel = const [];
+    } else {
+      final mainResults = data.data.results[data.request.mainQueryIndex];
+      final columnMetas = data.request.columnMetaQueryIndex != null
+          ? data.request.columnMetaParser!(
+              data.data.results[data.request.columnMetaQueryIndex!].rows,
+            )
+          : <String, List<ColumnMeta>>{};
 
-    final mainResults = data.data.results[data.request.mainQueryIndex];
-    final columnMetas = data.request.columnMetaQueryIndex != null
-        ? data.request.columnMetaParser!(
-            data.data.results[data.request.columnMetaQueryIndex!].rows,
+      final primaryKeys = columnMetas.entries
+          .where(
+            (entry) => entry.value.any((meta) => meta is ColumnMetaPrimaryKey),
           )
-        : <String, List<ColumnMeta>>{};
+          .map((entry) => entry.key)
+          .toList(growable: false);
 
-    final primaryKeys = columnMetas.entries
-        .where(
-          (entry) => entry.value.any((meta) => meta is ColumnMetaPrimaryKey),
-        )
-        .map((entry) => entry.key)
-        .toList(growable: false);
+      final selectedColumnMeta = selectedCell.value != null
+          ? columnMetas[mainResults
+                .columns[selectedCell.value!.columnIndex]
+                .name]
+          : null;
 
-    final selectedCellValue =
-        selectedCell.value != null &&
-            selectedCell.value!.rowIndex < mainResults.rows.length &&
-            selectedCell.value!.columnIndex < mainResults.columns.length
-        ? [
-            mainResults.rows[selectedCell.value!.rowIndex][selectedCell
-                .value!
-                .columnIndex],
-          ]
-        : null;
+      final selectedCellValue =
+          selectedCell.value != null &&
+              selectedCell.value!.rowIndex < mainResults.rows.length &&
+              selectedCell.value!.columnIndex < mainResults.columns.length
+          ? [
+              mainResults.rows[selectedCell.value!.rowIndex][selectedCell
+                  .value!
+                  .columnIndex],
+            ]
+          : null;
 
-    final selectedColumnMeta = selectedCell.value != null
-        ? columnMetas[mainResults.columns[selectedCell.value!.columnIndex].name]
-        : null;
+      recordTable = RecordTable(
+        columns: mainResults.columns.map((x) => x.name).toList(),
+        primaryKeyColumns: primaryKeys,
+        rowCount: mainResults.rows.length,
+        textStyle: themeData.textTheme.bodySmall!,
+        selectedCell: selectedCell.value,
+        sorts: sorts.value,
+        onSortChanged: queryInfo.canSort
+            ? (column, currSort) {
+                sorts.value = updateSort(currSort, column, sorts.value);
+              }
+            : null,
+        onCellSelected: (cell) {
+          if (selectedCell.value == cell) {
+            showValueDisplay.value = !showValueDisplay.value;
+          } else {
+            showValueDisplay.value = true;
+            selectedCell.value = cell;
+          }
+        },
+        cellValue: (ctx, rowIndex, columnIndex) {
+          return formatCellValue(
+            mainResults.rows[rowIndex][columnIndex],
+            theme: themeData,
+          );
+        },
+      );
 
-    final mainQuerySql =
-        data.request.request.queries[data.request.mainQueryIndex].sql;
-
-    var themeData = Theme.of(context);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Display the execution time, time query was run, and rerun button
-              _buildSQLViewBox(
-                themeData,
-                mainQuerySql,
-                refresh,
-                onRunInConsole != null
-                    ? () {
-                        onRunInConsole!(
-                          data.request.request.queries[data
-                              .request
-                              .mainQueryIndex],
-                        );
-                      }
-                    : null,
-              ),
-              const SizedBox(height: 8.0),
-              _buildQueryInfoBox(themeData, data),
-              const SizedBox(height: 8.0),
-              Expanded(
-                child: RecordTable(
-                  columns: mainResults.columns.map((x) => x.name).toList(),
-                  primaryKeyColumns: primaryKeys,
-                  rowCount: mainResults.rows.length,
-                  textStyle: themeData.textTheme.bodySmall!,
-                  selectedCell: selectedCell.value,
-                  sorts: sorts.value,
-                  onSortChanged: queryInfo.canSort
-                      ? (column, currSort) {
-                          sorts.value = updateSort(
-                            currSort,
-                            column,
-                            sorts.value,
-                          );
-                        }
-                      : null,
-                  onCellSelected: (cell) {
-                    if (selectedCell.value == cell) {
-                      showValueDisplay.value = !showValueDisplay.value;
-                    } else {
-                      showValueDisplay.value = true;
-                      selectedCell.value = cell;
-                    }
-                  },
-                  cellValue: (ctx, rowIndex, columnIndex) {
-                    return formatCellValue(
-                      mainResults.rows[rowIndex][columnIndex],
-                      theme: themeData,
-                    );
-                  },
+      valueDisplayPanel = (selectedCellValue != null && showValueDisplay.value)
+          ? [
+              const SizedBox(width: 8.0),
+              Container(
+                width: 300,
+                decoration: BoxDecoration(
+                  color: themeData.colorScheme.surfaceContainerLow,
+                  border: Border.all(
+                    color: themeData.colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: _ValueDisplayPanel(
+                  value: selectedCellValue[0],
+                  metadata: selectedColumnMeta ?? [],
+                  columnName:
+                      mainResults.columns[selectedCell.value!.columnIndex].name,
                 ),
               ),
+            ]
+          : [];
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RecordHeaderBar(
+          whereClause: whereClauseController,
+          orderByClause: orderByClauseController,
+          onSubmitted: () {
+            extraWhereClause.value = whereClauseController.text.isNotEmpty
+                ? whereClauseController.text
+                : null;
+
+            sorts.value = _buildSortsFromClause(orderByClauseController.text);
+          },
+        ),
+        const SizedBox(height: 8),
+        if (data != null) ...[
+          _buildQueryInfoBox(themeData, data),
+          const SizedBox(height: 8),
+        ],
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: recordTable),
+              ...valueDisplayPanel,
             ],
           ),
         ),
-        if (selectedCellValue != null && showValueDisplay.value) ...[
-          const SizedBox(width: 8.0),
-          Container(
-            width: 300,
-            decoration: BoxDecoration(
-              color: themeData.colorScheme.surfaceContainerLow,
-              border: Border.all(color: themeData.colorScheme.outlineVariant),
-              borderRadius: BorderRadius.circular(8.0),
-            ),
-            child: _ValueDisplayPanel(
-              value: selectedCellValue[0],
-              metadata: selectedColumnMeta ?? [],
-              columnName:
-                  mainResults.columns[selectedCell.value!.columnIndex].name,
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -256,6 +279,22 @@ class RecordBrowser extends HookWidget {
       newSorts.removeAt(existingSortIndex);
     }
     return newSorts;
+  }
+
+  List<Sort> _buildSortsFromClause(String orderByClause) {
+    if (orderByClause.isEmpty) return [];
+    final sorts = <Sort>[];
+    final parts = orderByClause.split(',');
+    for (var part in parts) {
+      part = part.trim();
+      if (part.isEmpty) continue;
+      final ascending = !part.endsWith(' DESC');
+      final column = ascending
+          ? part
+          : part.substring(0, part.length - 5).trim();
+      sorts.add(Sort(column: column, ascending: ascending));
+    }
+    return sorts;
   }
 
   Widget _buildInfoBox(ThemeData themeData, Widget child) {
