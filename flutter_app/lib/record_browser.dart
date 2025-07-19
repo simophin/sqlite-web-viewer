@@ -181,6 +181,7 @@ class RecordBrowser extends HookWidget {
         onSortChanged: queryInfo.canSort
             ? (column, currSort) {
                 sorts.value = updateSort(currSort, column, sorts.value);
+                orderByClauseController.text = buildOrderByClause(sorts.value);
               }
             : null,
         onCellSelected: (cell) {
@@ -307,6 +308,15 @@ class RecordBrowser extends HookWidget {
       ),
       child: child,
     );
+  }
+
+  String buildOrderByClause(List<Sort> sorts) {
+    if (sorts.isEmpty) return '';
+    return sorts
+        .map((sort) {
+          return '${sort.column}${sort.ascending ? '' : ' DESC'}';
+        })
+        .join(', ');
   }
 
   Widget _buildSQLViewBox(

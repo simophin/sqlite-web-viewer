@@ -128,6 +128,7 @@ class RecordTable<CellType> extends HookWidget {
                       (isPrimaryKeyColumn
                           ? (_primaryKeyIconGap + _primaryKeyIconSize)
                           : 0.0) + // Extra space for primary key icon
+                      (_primaryKeyIconGap + _primaryKeyIconSize) +
                       (hasSorting
                           ? 20.0
                           : 0.0) + // Extra space for sorting icon
@@ -178,71 +179,52 @@ class RecordTable<CellType> extends HookWidget {
             (sort) => sort.column == currentColumn,
           );
 
-          final text = RichText(
-            text: TextSpan(
-              text: '',
-              style: _headerTextStyle,
-              children: [
-                if (primaryKeyColumns.contains(currentColumn)) ...[
-                  WidgetSpan(
-                    child: Icon(
-                      Icons.key,
-                      size: _primaryKeyIconSize,
-                      color: textStyle.color,
-                    ),
-                  ),
-                  const WidgetSpan(
-                    child: SizedBox(
-                      width: _primaryKeyIconGap,
-                    ), // Gap after the icon
-                  ),
-                ],
-                TextSpan(text: currentColumn),
-                if (columnSort != null) ...[
-                  const WidgetSpan(
-                    child: SizedBox(
-                      width: _primaryKeyIconGap,
-                    ), // Gap after the icon
-                  ),
-                  WidgetSpan(
-                    child: Icon(
-                      columnSort.ascending
-                          ? Icons.arrow_drop_up
-                          : Icons.arrow_drop_down,
-                      size: 16.0,
-                      color: textStyle.color,
-                    ),
-                  ),
-                ],
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(width: columnHeaderPaddings.horizontal / 2),
+
+              if (primaryKeyColumns.contains(currentColumn)) ...[
+                Icon(
+                  Icons.key,
+                  size: _primaryKeyIconSize,
+                  color: textStyle.color,
+                ),
+                const SizedBox(width: _primaryKeyIconGap), // Gap after the icon
               ],
-            ),
-            textAlign: TextAlign.start,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          );
 
-          final child = Container(
-            padding: columnHeaderPaddings,
-            child: columnSort != null
-                ? Tooltip(
-                    message:
-                        'Sorted by ${columnSort.ascending ? 'ascending' : 'descending'}',
-                    child: text,
-                  )
-                : text,
-          );
+              Text(currentColumn, style: _headerTextStyle),
 
-          if (onSortChanged != null) {
-            return MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => onSortChanged!(currentColumn, columnSort),
-                child: child,
+              IconButton(
+                onPressed: () {},
+                iconSize: 16,
+                visualDensity: VisualDensity.compact,
+                icon: Icon(
+                  Icons.filter_alt_outlined,
+                  size: _primaryKeyIconSize,
+                  color: textStyle.color,
+                ),
               ),
-            );
-          } else {
-            return child;
-          }
+
+              if (onSortChanged != null) ...[
+                const SizedBox.expand(),
+                IconButton(
+                  onPressed: () {},
+                  iconSize: 16,
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    columnSort == null
+                        ? Icons.sort_outlined
+                        : columnSort.ascending
+                            ? Icons.arrow_upward_outlined
+                            : Icons.arrow_downward_outlined,
+                    size: _primaryKeyIconSize,
+                    color: textStyle.color,
+                  ),
+                ),
+              ],
+            ],
+          );
         },
       ),
     );
