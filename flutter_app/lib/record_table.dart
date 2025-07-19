@@ -69,15 +69,15 @@ class RecordTable<CellType> extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final columnSampleTexts = columns
+    final columnTextLengths = columns
         .mapIndexed(
           (columnIndex, col) => Iterable<int>.generate(min(10, rowCount)).fold(
-            [col],
+            [col.length],
             (acc, rowIndex) {
               final (cellText, _) = cellValue(context, rowIndex, columnIndex);
               final prev = acc.length > 1 ? acc.last : null;
-              if (prev == null || prev.length < cellText.length) {
-                return [col, cellText];
+              if (prev == null || prev < cellText.length) {
+                return [col.length, cellText.length];
               } else {
                 return acc;
               }
@@ -89,77 +89,60 @@ class RecordTable<CellType> extends HookWidget {
     final textDirection = Directionality.of(context);
     final textScaler = MediaQuery.of(context).textScaler;
     final locale = Localizations.localeOf(context);
+    final headerTextStyle = textStyle.copyWith(fontWeight: FontWeight.w600);
 
     final measures = useMemoized(
-      () => columnSampleTexts.foldIndexed(
-        _TableMeasurements(columnWidths: [], columnHeaderHeight: 0),
-        (columnIndex, m, colTexts) {
-          final headerTextStyle = textStyle.copyWith(
-            fontWeight: FontWeight.w600,
-          );
-          final (maxWidth, maxHeight) = colTexts.fold((_minColumnWidth, 0.0), (
-            acc,
-            text,
-          ) {
-            final isPrimaryKeyColumn = primaryKeyColumns.contains(
-              columns[columnIndex],
-            );
-            final hasSorting = sorts.any(
-              (sort) => sort.column == columns[columnIndex],
-            );
+      () => columns.foldIndexed(
+        _TableMeasurements(columnWidths: const [], columnHeaderHeight: 0),
+        (columnIndex, measurements, col) {
+          final sampleTextLength = Iterable<int>.generate(min(10, rowCount))
+              .fold(col.length, (acc, rowIndex) {
+                final (cellText, _) = cellValue(context, rowIndex, columnIndex);
+                return max(acc, cellText.length);
+              });
 
-            final painter = TextPainter(
-              textDirection: textDirection,
-              textAlign: TextAlign.start,
-              text: TextSpan(text: text, style: headerTextStyle),
-              maxLines: 1,
-              textScaler: textScaler,
-              locale: locale,
-              ellipsis: "...",
-              strutStyle: StrutStyle.fromTextStyle(headerTextStyle),
-            )..layout(minWidth: _minColumnWidth, maxWidth: _maxColumnWidth);
-
-            try {
-              return (
-                max(
-                  acc.$1,
-                  min(_maxColumnWidth, painter.maxIntrinsicWidth) +
-                      columnHeaderPaddings.horizontal +
-                      (isPrimaryKeyColumn
-                          ? (_primaryKeyIconGap + _primaryKeyIconSize)
-                          : 0.0) + // Extra space for primary key icon
-                      (_primaryKeyIconGap + _primaryKeyIconSize) +
-                      (hasSorting
-                          ? 20.0
-                          : 0.0) + // Extra space for sorting icon
-                      2.0, // +2 for the border
-                ),
-                max(
-                  acc.$2,
-                  painter.height + columnHeaderPaddings.vertical,
-                ), // +2 for the border
-              );
-            } finally {
-              painter.dispose();
-            }
-          });
-
-          m.columnWidths.add(maxWidth);
-          if (maxHeight > m.columnHeaderHeight) {
-            m.columnHeaderHeight = maxHeight;
+          final sb = StringBuffer();
+          for (int i = 0; i < sampleTextLength; i++) {
+            sb.write('W'); // Use 'W' as a wide character for measurement
           }
 
-          return m;
+          final painter = TextPainter(
+            textDirection: textDirection,
+            textAlign: TextAlign.start,
+            text: TextSpan(text: sb.toString(), style: headerTextStyle),
+            maxLines: 1,
+            textScaler: textScaler,
+            locale: locale,
+            ellipsis: "...",
+            strutStyle: StrutStyle.fromTextStyle(headerTextStyle),
+          )..layout(minWidth: _minColumnWidth, maxWidth: _maxColumnWidth);
+          var columnWidth = painter.maxIntrinsicWidth.ceil() + columnHeaderPaddings.horizontal;
+          final sampleTextHeight = painter.height;
+          painter.dispose();
+
+          columnWidth += columnHeaderPaddings.horizontal + 24;
+
+          if (primaryKeyColumns.contains(col)) {
+            columnWidth += _primaryKeyIconSize + _primaryKeyIconGap; // Add space for primary key icon
+          }
+
+          if (onSortChanged != null) {
+            columnWidth += 24;
+          }
+
+          return _TableMeasurements(
+            columnWidths: [
+              ...measurements.columnWidths,
+              min(columnWidth, _maxColumnWidth),
+            ],
+            columnHeaderHeight: max(
+              sampleTextHeight + columnHeaderPaddings.vertical,
+              measurements.columnHeaderHeight,
+            ),
+          );
         },
       ),
-      [
-        columnSampleTexts,
-        textStyle,
-        columnHeaderPaddings,
-        textDirection,
-        textScaler,
-        locale,
-      ],
+      [columns],
     );
 
     final controller = useScrollController();
@@ -207,7 +190,7 @@ class RecordTable<CellType> extends HookWidget {
               ),
 
               if (onSortChanged != null) ...[
-                const SizedBox.expand(),
+                Expanded(child: SizedBox()), // Spacer
                 IconButton(
                   onPressed: () {},
                   iconSize: 16,
@@ -216,8 +199,8 @@ class RecordTable<CellType> extends HookWidget {
                     columnSort == null
                         ? Icons.sort_outlined
                         : columnSort.ascending
-                            ? Icons.arrow_upward_outlined
-                            : Icons.arrow_downward_outlined,
+                        ? Icons.arrow_upward_outlined
+                        : Icons.arrow_downward_outlined,
                     size: _primaryKeyIconSize,
                     color: textStyle.color,
                   ),

@@ -4,14 +4,14 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 class PaginationBar extends HookWidget {
   final int currentPage;
   final int numPerPage;
-  final int numItems;
+  final int totalItemCount;
   final void Function(int page) onPageChanged;
 
   const PaginationBar({
     super.key,
     required this.currentPage,
     required this.numPerPage,
-    required this.numItems,
+    required this.totalItemCount,
     required this.onPageChanged,
   });
 
