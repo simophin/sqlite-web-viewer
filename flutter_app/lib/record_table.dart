@@ -192,7 +192,16 @@ class RecordTable<CellType> extends HookWidget {
               if (onSortChanged != null) ...[
                 Expanded(child: SizedBox()), // Spacer
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    if (columnSort == null) {
+                      onSortChanged!(currentColumn, Sort(column: currentColumn, ascending: true));
+                    } else {
+                      final newSort = columnSort.ascending
+                          ? Sort(column: currentColumn, ascending: false)
+                          : null;
+                      onSortChanged!(currentColumn, newSort);
+                    }
+                  },
                   iconSize: 16,
                   visualDensity: VisualDensity.compact,
                   icon: Icon(
