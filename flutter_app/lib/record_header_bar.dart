@@ -5,7 +5,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 class RecordHeaderBar extends HookWidget {
   final TextEditingController whereClause;
   final TextEditingController orderByClause;
-  final List<String> columns;
 
   final void Function() onSubmitted;
 
@@ -14,7 +13,6 @@ class RecordHeaderBar extends HookWidget {
     required this.whereClause,
     required this.orderByClause,
     required this.onSubmitted,
-    required this.columns,
   });
 
   @override
@@ -58,20 +56,15 @@ class RecordHeaderBar extends HookWidget {
           ),
           const SizedBox(width: 4),
           Expanded(
-            child: Autocomplete(
-              optionsBuilder: (value) async {
-                return <String>[];
-              },
-              child: TextField(
-                controller: whereClause,
-                style: theme.textTheme.labelMedium,
-                maxLines: 1,
-                onSubmitted: (_) => onSubmitted(),
-                // Disable decoration
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                ),
+            child: TextField(
+              controller: whereClause,
+              style: theme.textTheme.labelMedium,
+              maxLines: 1,
+              onSubmitted: (_) => onSubmitted(),
+              // Disable decoration
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
               ),
             ),
           ),

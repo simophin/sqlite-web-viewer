@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app/pagination_bar.dart';
 import 'package:flutter_app/record_query_info.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -69,23 +70,6 @@ class RecordTable<CellType> extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final columnTextLengths = columns
-        .mapIndexed(
-          (columnIndex, col) => Iterable<int>.generate(min(10, rowCount)).fold(
-            [col.length],
-            (acc, rowIndex) {
-              final (cellText, _) = cellValue(context, rowIndex, columnIndex);
-              final prev = acc.length > 1 ? acc.last : null;
-              if (prev == null || prev < cellText.length) {
-                return [col.length, cellText.length];
-              } else {
-                return acc;
-              }
-            },
-          ),
-        )
-        .toList();
-
     final textDirection = Directionality.of(context);
     final textScaler = MediaQuery.of(context).textScaler;
     final locale = Localizations.localeOf(context);
@@ -270,23 +254,39 @@ class RecordTable<CellType> extends HookWidget {
       itemCount: rowCount,
     );
 
-    return Scrollbar(
-      controller: controller,
-      child: FadingEdgeScrollView.fromSingleChildScrollView(
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          controller: controller,
-          clipBehavior: Clip.hardEdge,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: FadingEdgeScrollView.fromScrollView(child: body),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Scrollbar(
+            controller: controller,
+            child: FadingEdgeScrollView.fromSingleChildScrollView(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                controller: controller,
+                clipBehavior: Clip.hardEdge,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: FadingEdgeScrollView.fromScrollView(child: body),
+                    ),
+                    header,
+                  ],
+                ),
               ),
-              header,
-            ],
+            ),
           ),
         ),
-      ),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: PaginationBar(
+            currentPage: 0,
+            numPerPage: 100,
+            totalItemCount: 500,
+            onPageChanged: (_) {},
+            onRefresh: () {},
+          ),
+        ),
+      ],
     );
   }
 }
