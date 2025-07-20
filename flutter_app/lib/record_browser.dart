@@ -257,10 +257,6 @@ class RecordBrowser extends HookWidget {
                 },
               ),
               const SizedBox(height: 8),
-              if (data != null) ...[
-                _buildQueryInfoBox(themeData, data),
-                const SizedBox(height: 8),
-              ],
               Expanded(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -71,10 +71,12 @@ class PaginationBar extends HookWidget {
               tooltip: 'Previous Page',
               visualDensity: VisualDensity.compact,
             ),
+            const SizedBox(width: 4),
             Text(
               '$startIndex - $endIndex of $totalItemCount',
               style: themeData.textTheme.labelMedium,
             ),
+            const SizedBox(width: 4),
             IconButton(
               icon: const Icon(Icons.navigate_next, size: 16),
               onPressed: normalisedCurrentPage < totalPages - 1
