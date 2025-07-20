@@ -254,39 +254,23 @@ class RecordTable<CellType> extends HookWidget {
       itemCount: rowCount,
     );
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Scrollbar(
-            controller: controller,
-            child: FadingEdgeScrollView.fromSingleChildScrollView(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                controller: controller,
-                clipBehavior: Clip.hardEdge,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: FadingEdgeScrollView.fromScrollView(child: body),
-                    ),
-                    header,
-                  ],
-                ),
+    return Scrollbar(
+      controller: controller,
+      child: FadingEdgeScrollView.fromSingleChildScrollView(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          controller: controller,
+          clipBehavior: Clip.hardEdge,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: FadingEdgeScrollView.fromScrollView(child: body),
               ),
-            ),
+              header,
+            ],
           ),
         ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: PaginationBar(
-            currentPage: 0,
-            numPerPage: 100,
-            totalItemCount: 500,
-            onPageChanged: (_) {},
-            onRefresh: () {},
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

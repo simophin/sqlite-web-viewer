@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/cell_value.dart';
 import 'package:flutter_app/highlighter.dart';
+import 'package:flutter_app/pagination_bar.dart';
 import 'package:flutter_app/query.dart';
 import 'package:flutter_app/record_header_bar.dart';
 import 'package:flutter_app/record_table.dart';
@@ -223,34 +224,59 @@ class RecordBrowser extends HookWidget {
           : [];
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.max,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RecordHeaderBar(
-          whereClause: whereClauseController,
-          orderByClause: orderByClauseController,
-          onSubmitted: () {
-            extraWhereClause.value = whereClauseController.text.isNotEmpty
-                ? whereClauseController.text
-                : null;
+    final pagination = data?.request.countQueryIndex != null
+        ? PaginationBar(
+            currentPage: pageIndex.value,
+            numPerPage: pageSize.value,
+            totalItemCount:
+                data!.data.results[data.request.countQueryIndex!].rows[0][0]
+                    as int,
+            onPageChanged: (newIndex) => pageIndex.value = newIndex,
+            onRefresh: refresh,
+          )
+        : const SizedBox.shrink();
 
-            sorts.value = _buildSortsFromClause(orderByClauseController.text);
-          },
-        ),
-        const SizedBox(height: 8),
-        if (data != null) ...[
-          _buildQueryInfoBox(themeData, data),
-          const SizedBox(height: 8),
-        ],
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: recordTable),
-              ...valueDisplayPanel,
+              RecordHeaderBar(
+                whereClause: whereClauseController,
+                orderByClause: orderByClauseController,
+                onSubmitted: () {
+                  extraWhereClause.value = whereClauseController.text.isNotEmpty
+                      ? whereClauseController.text
+                      : null;
+
+                  sorts.value = _buildSortsFromClause(
+                    orderByClauseController.text,
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              if (data != null) ...[
+                _buildQueryInfoBox(themeData, data),
+                const SizedBox(height: 8),
+              ],
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: recordTable),
+                    ...valueDisplayPanel,
+                  ],
+                ),
+              ),
             ],
           ),
+        ),
+        Container(
+          alignment: Alignment.bottomCenter,
+          padding: const EdgeInsets.only(bottom: 8),
+          child: pagination,
         ),
       ],
     );

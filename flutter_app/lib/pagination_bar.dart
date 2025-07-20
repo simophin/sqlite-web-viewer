@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
@@ -21,10 +23,14 @@ class PaginationBar extends HookWidget {
   Widget build(BuildContext context) {
     final totalPages = (totalItemCount / numPerPage.toDouble()).ceil();
     final normalisedCurrentPage = currentPage.clamp(0, totalPages - 1);
-
     var themeData = Theme.of(context);
-
     final isHovering = useState(false);
+
+    final startIndex = normalisedCurrentPage * numPerPage + 1;
+    final endIndex = min(
+      totalItemCount,
+      (normalisedCurrentPage + 1) * numPerPage,
+    );
 
     return MouseRegion(
       onEnter: (_) => isHovering.value = true,
@@ -37,7 +43,7 @@ class PaginationBar extends HookWidget {
           ),
           borderRadius: BorderRadius.circular(8),
           color: themeData.colorScheme.surfaceContainer.withAlpha(
-            isHovering.value ? 255 : 100,
+            isHovering.value ? 255 : 180,
           ),
         ),
         padding: const EdgeInsets.all(4),
@@ -50,11 +56,13 @@ class PaginationBar extends HookWidget {
               tooltip: 'Refresh',
               visualDensity: VisualDensity.compact,
             ),
-            const SizedBox(width: 8),
-            Text(
-              'Page ${normalisedCurrentPage + 1} of $totalPages',
-              style: themeData.textTheme.labelMedium,
-            ),
+            if (totalPages > 0)
+              IconButton(
+                icon: const Icon(Icons.first_page, size: 16),
+                onPressed: () => onPageChanged(0),
+                tooltip: 'First Page',
+                visualDensity: VisualDensity.compact,
+              ),
             IconButton(
               icon: const Icon(Icons.navigate_before, size: 16),
               onPressed: normalisedCurrentPage > 0
@@ -62,6 +70,10 @@ class PaginationBar extends HookWidget {
                   : null,
               tooltip: 'Previous Page',
               visualDensity: VisualDensity.compact,
+            ),
+            Text(
+              '$startIndex - $endIndex of $totalItemCount',
+              style: themeData.textTheme.labelMedium,
             ),
             IconButton(
               icon: const Icon(Icons.navigate_next, size: 16),
@@ -71,6 +83,15 @@ class PaginationBar extends HookWidget {
               tooltip: 'Next Page',
               visualDensity: VisualDensity.compact,
             ),
+            if (totalPages > 0)
+              IconButton(
+                icon: const Icon(Icons.last_page, size: 16),
+                onPressed: normalisedCurrentPage < totalPages - 1
+                    ? () => onPageChanged(totalPages - 1)
+                    : null,
+                tooltip: 'Last page',
+                visualDensity: VisualDensity.compact,
+              ),
           ],
         ),
       ),
