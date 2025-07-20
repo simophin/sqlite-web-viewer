@@ -116,14 +116,18 @@ class RecordTable<CellType> extends HookWidget {
             ellipsis: "...",
             strutStyle: StrutStyle.fromTextStyle(headerTextStyle),
           )..layout(minWidth: _minColumnWidth, maxWidth: _maxColumnWidth);
-          var columnWidth = painter.maxIntrinsicWidth.ceil() + columnHeaderPaddings.horizontal;
+          var columnWidth =
+              painter.maxIntrinsicWidth.ceil() +
+              columnHeaderPaddings.horizontal;
           final sampleTextHeight = painter.height;
           painter.dispose();
 
           columnWidth += columnHeaderPaddings.horizontal + 24;
 
           if (primaryKeyColumns.contains(col)) {
-            columnWidth += _primaryKeyIconSize + _primaryKeyIconGap; // Add space for primary key icon
+            columnWidth +=
+                _primaryKeyIconSize +
+                _primaryKeyIconGap; // Add space for primary key icon
           }
 
           if (onSortChanged != null) {
@@ -176,7 +180,11 @@ class RecordTable<CellType> extends HookWidget {
                 const SizedBox(width: _primaryKeyIconGap), // Gap after the icon
               ],
 
-              Text(currentColumn, style: _headerTextStyle),
+              Text(
+                currentColumn,
+                style: _headerTextStyle,
+                overflow: TextOverflow.ellipsis,
+              ),
 
               IconButton(
                 onPressed: () {},
@@ -194,7 +202,10 @@ class RecordTable<CellType> extends HookWidget {
                 IconButton(
                   onPressed: () {
                     if (columnSort == null) {
-                      onSortChanged!(currentColumn, Sort(column: currentColumn, ascending: true));
+                      onSortChanged!(
+                        currentColumn,
+                        Sort(column: currentColumn, ascending: true),
+                      );
                     } else {
                       final newSort = columnSort.ascending
                           ? Sort(column: currentColumn, ascending: false)
