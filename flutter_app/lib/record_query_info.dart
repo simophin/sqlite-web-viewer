@@ -42,7 +42,12 @@ abstract class RecordQueryInfo {
 
   ColumnMetaQuery? get columnMetaQuery;
 
-  SQLQuery query({Pagination? pagination, List<Sort>? sorts, bool? forCount, String? extraWhereClause});
+  SQLQuery query({
+    Pagination? pagination,
+    List<Sort>? sorts,
+    bool? forCount,
+    String? extraWhereClause,
+  });
 }
 
 class TableRecordQueryInfo implements RecordQueryInfo {
@@ -60,7 +65,7 @@ class TableRecordQueryInfo implements RecordQueryInfo {
   ColumnMetaQuery? get columnMetaQuery => ColumnMetaQuery(
     query: SQLQuery(
       sql:
-          "SELECT name, type, `notnull`, dflt_value, pk, (hidden == 2) AS is_generated FROM pragma_table_xinfo(?)",
+          "SELECT name, type, `notnull`, dflt_value, pk, 0 AS is_generated FROM pragma_table_info(?)",
       params: [tableName],
     ),
     parse: (rows) => Map.fromEntries(
@@ -105,7 +110,9 @@ class TableRecordQueryInfo implements RecordQueryInfo {
       query.write('\nORDER BY ');
       query.write(
         sorts
-            .map((sort) => '`${sort.column}` ${sort.ascending ? 'ASC' : 'DESC'}')
+            .map(
+              (sort) => '`${sort.column}` ${sort.ascending ? 'ASC' : 'DESC'}',
+            )
             .join(', '),
       );
     }

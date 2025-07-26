@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/console_view.dart';
 import 'package:flutter_app/drag_handle.dart';
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     var seedColor = Colors.amber;
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'SQLite viewer',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: seedColor),
         useMaterial3: true,
@@ -37,7 +38,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.dark,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Home page'),
       themeMode: ThemeMode.dark,
     );
   }
@@ -53,7 +54,10 @@ class MyHomePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final endpoint = Uri.parse("http://localhost:3000");
+    final endpoint = kIsWeb
+        ? Uri.base.resolveUri(Uri.parse('/'))
+        : Uri.parse("http://192.168.8.236:3000");
+
     final results = useSingleQuery(
       endpoint,
       SQLQuery(
