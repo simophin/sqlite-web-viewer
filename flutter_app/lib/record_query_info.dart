@@ -27,7 +27,7 @@ abstract class ColumnMeta with _$ColumnMeta {
 @freezed
 abstract class ColumnMetaQuery with _$ColumnMetaQuery {
   const factory ColumnMetaQuery({
-    required SQLQuery query,
+    required ConditionalSQLQuery query,
     required Map<String, List<ColumnMeta>> Function(List<List<dynamic>> rows)
     parse,
   }) = _ColumnMetaQuery;
@@ -42,7 +42,7 @@ abstract class RecordQueryInfo {
 
   ColumnMetaQuery? get columnMetaQuery;
 
-  SQLQuery query({
+  ConditionalSQLQuery query({
     Pagination? pagination,
     List<Sort>? sorts,
     bool? forCount,
@@ -63,10 +63,17 @@ class TableRecordQueryInfo implements RecordQueryInfo {
 
   @override
   ColumnMetaQuery? get columnMetaQuery => ColumnMetaQuery(
-    query: SQLQuery(
+    query: ConditionalSQLQuery(
       sql:
-          "SELECT name, type, `notnull`, dflt_value, pk, 0 AS is_generated FROM pragma_table_info(?)",
+          "SELECT name, type, `notnull`, dflt_value, pk, (hidden == 2) AS is_generated FROM pragma_table_xinfo(?)",
       params: [tableName],
+      conditions: {
+        "<3.26.0": SQLQuery(
+          sql:
+              "SELECT name, type, `notnull`, dflt_value, pk, 0 AS is_generated FROM pragma_table_info(?)",
+          params: [tableName],
+        ),
+      },
     ),
     parse: (rows) => Map.fromEntries(
       rows.map((row) {
@@ -90,7 +97,7 @@ class TableRecordQueryInfo implements RecordQueryInfo {
   );
 
   @override
-  SQLQuery query({
+  ConditionalSQLQuery query({
     Pagination? pagination,
     List<Sort>? sorts,
     bool? forCount = false,
@@ -125,7 +132,7 @@ class TableRecordQueryInfo implements RecordQueryInfo {
       }
     }
 
-    return SQLQuery(sql: query.toString(), params: []);
+    return ConditionalSQLQuery(sql: query.toString(), params: []);
   }
 
   @override
@@ -143,7 +150,7 @@ class TableRecordQueryInfo implements RecordQueryInfo {
 }
 
 class SingleSQLQueryInfo implements RecordQueryInfo {
-  final SQLQuery q;
+  final ConditionalSQLQuery q;
 
   const SingleSQLQueryInfo(this.q);
 
@@ -160,7 +167,7 @@ class SingleSQLQueryInfo implements RecordQueryInfo {
   bool get supportsExtraWhereClause => false;
 
   @override
-  SQLQuery query({
+  ConditionalSQLQuery query({
     Pagination? pagination,
     List<Sort>? sorts,
     bool? forCount = false,

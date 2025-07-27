@@ -6,7 +6,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
 
 part 'query.freezed.dart';
-
 part 'query.g.dart';
 
 @freezed
@@ -19,10 +18,22 @@ abstract class SQLQuery with _$SQLQuery {
 }
 
 @freezed
+abstract class ConditionalSQLQuery with _$ConditionalSQLQuery {
+  const factory ConditionalSQLQuery({
+    required String sql,
+    required List<String> params,
+    Map<String, SQLQuery>? conditions,
+  }) = _ConditionalSQLQuery;
+
+  factory ConditionalSQLQuery.fromJson(Map<String, dynamic> json) =>
+      _$ConditionalSQLQueryFromJson(json);
+}
+
+@freezed
 abstract class Request with _$Request {
   const factory Request({
     @JsonKey(name: 'run_in_transaction') required bool runInTransaction,
-    required List<SQLQuery> queries,
+    required List<ConditionalSQLQuery> queries,
   }) = _Request;
 
   factory Request.fromJson(Map<String, dynamic> json) =>
@@ -106,7 +117,7 @@ AsyncSnapshot<UseQueryResults<T>> useQueries<T extends RequestProvider>(
   return useFuture(fut);
 }
 
-AsyncSnapshot<QueryResult> useSingleQuery(Uri uri, SQLQuery query) {
+AsyncSnapshot<QueryResult> useSingleQuery(Uri uri, ConditionalSQLQuery query) {
   final fut = useMemoized(() async {
     return (await fetchQueryResults(
       uri,

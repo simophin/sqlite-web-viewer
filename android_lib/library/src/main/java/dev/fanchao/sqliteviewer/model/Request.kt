@@ -6,5 +6,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Request(
     @SerialName("run_in_transaction") val runInTransaction: Boolean = true,
-    val queries: List<Query>,
+    val queries: List<ConditionalQuery>,
 )

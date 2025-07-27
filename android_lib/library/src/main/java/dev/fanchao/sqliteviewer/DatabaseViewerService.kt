@@ -16,6 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import dev.fanchao.sqliteviewer.model.QueryResult
 import dev.fanchao.sqliteviewer.model.QueryResults
 import dev.fanchao.sqliteviewer.model.Request
+import dev.fanchao.sqliteviewer.model.Version
 import io.ktor.http.ContentType
 import io.ktor.http.defaultForFilePath
 import io.ktor.serialization.kotlinx.json.json
@@ -50,6 +51,17 @@ abstract class DatabaseViewerService : Service() {
             COMMAND_ACTION_START -> {
                 job = GlobalScope.launch {
                     val db by lazy { openDatabase() }
+                    val dbVersion: Version by lazy {
+                        db.query("SELECT sqlite_version() AS version")
+                            .use { cursor ->
+                                if (cursor.moveToFirst()) {
+                                    Version.fromString(cursor.getString(0))
+                                } else {
+                                    throw IllegalStateException("Failed to get SQLite version")
+                                }
+                            }
+                    }
+
                     val server = embeddedServer(factory = CIO, port = 3000) {
                         install(ContentNegotiation) {
                             json()
@@ -60,12 +72,12 @@ abstract class DatabaseViewerService : Service() {
                                 val req = call.receive<Request>()
 
                                 val results = ArrayList<QueryResult>(req.queries.size)
-
-                                val start = SystemClock.elapsedRealtime()
+                                val start = SystemClock.elapsedRealtimeNanos()
                                 db.beginTransaction()
                                 try {
                                     for (query in req.queries) {
-                                        db.query(query.sql, query.params.toTypedArray())
+                                        val (sql, params) = query.getQuery(dbVersion)
+                                        db.query(sql, params.toTypedArray())
                                             .use { cursor ->
                                                 results.add(QueryResult.fromCursor(0, cursor))
                                             }
@@ -76,7 +88,7 @@ abstract class DatabaseViewerService : Service() {
                                 }
 
                                 call.respond(QueryResults(
-                                    executionTimeUs = (SystemClock.elapsedRealtime() - start) * 1000L,
+                                    executionTimeUs = (SystemClock.elapsedRealtime() - start) / 1000L,
                                     results = results
                                 ))
                             }

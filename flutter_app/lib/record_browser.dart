@@ -35,7 +35,7 @@ abstract class _QueryInfoRequestProvider
     required List<Sort> sorts,
     String? extraWhereClause,
   }) {
-    final queries = <SQLQuery>[];
+    final queries = <ConditionalSQLQuery>[];
     int? columnMetaQueryIndex;
     int? countQueryIndex;
 

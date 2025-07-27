@@ -44,7 +44,7 @@ class QueryHistoryView extends HookWidget {
 
     final onRunTapped = useCallback(() async {
       currentQuery.value = SingleSQLQueryInfo(
-        SQLQuery(sql: draft.value.text, params: []),
+        ConditionalSQLQuery(sql: draft.value.text, params: []),
       );
 
       if (!currentQueryManuallyTyped.value) {
@@ -64,7 +64,7 @@ class QueryHistoryView extends HookWidget {
     final onHistoryItemTapped = useCallback((ConsoleHistoryItem item) {
       draft.value = TextEditingValue(text: item.query);
       currentQuery.value = SingleSQLQueryInfo(
-        SQLQuery(sql: item.query, params: []),
+        ConditionalSQLQuery(sql: item.query, params: []),
       );
       currentQueryManuallyTyped.value = false;
     }, [draft]);

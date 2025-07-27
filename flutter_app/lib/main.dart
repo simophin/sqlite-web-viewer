@@ -60,7 +60,7 @@ class MyHomePage extends HookWidget {
 
     final results = useSingleQuery(
       endpoint,
-      SQLQuery(
+      ConditionalSQLQuery(
         sql:
             "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') ORDER BY type, name",
         params: [],
