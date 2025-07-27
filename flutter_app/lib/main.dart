@@ -47,6 +47,8 @@ class MyApp extends StatelessWidget {
 const _minNavColumnWidth = 150.0;
 const _maxNavColumnWidth = 600.0;
 
+const _defaultConsole = NavItem.console(name: "default");
+
 class MyHomePage extends HookWidget {
   const MyHomePage({super.key, required this.title});
 
@@ -69,35 +71,31 @@ class MyHomePage extends HookWidget {
 
     final navItems = useMemoized(() {
       if (results.error != null) {
-        return <NavItem>[];
+        return <NavItem>[_defaultConsole];
       }
       final data = results.data;
       if (data == null) {
-        return <NavItem>[];
+        return <NavItem>[_defaultConsole];
       }
-      return data.rows.map((row) {
-        final name = row[0] as String;
-        final type = row[1] as String;
-        switch (type) {
-          case 'table':
-            return NavItem.table(name: name);
-          case 'view':
-            return NavItem.view(name: name);
-          default:
-            throw Exception('Unknown type: $type');
-        }
-      }).toList();
+      return [
+        _defaultConsole,
+        ...data.rows
+            .map((row) {
+              final name = row[0] as String;
+              final type = row[1] as String;
+              switch (type) {
+                case 'table':
+                  return NavItem.table(name: name);
+                case 'view':
+                  return NavItem.view(name: name);
+                default:
+                  throw Exception('Unknown type: $type');
+              }
+            })
+            .toList(growable: false),
+      ];
     }, [results.data, results.error]);
 
-    // final consoles = usePreference<List<ConsoleItem>>(
-    //   'console_list',
-    //   [const ConsoleItem(id: "1", name: "Query console")],
-    //   jsonCodec: (
-    //     (json) =>
-    //         (json as List).map((item) => ConsoleItem.fromJson(item)).toList(),
-    //     (items) => items.map((item) => item.toJson()).toList(),
-    //   ),
-    // );
     final selectedNavItemId = useState<NavItem?>(null);
     final selectedNavItemIndex = useMemoized(() {
       if (selectedNavItemId.value == null) {
