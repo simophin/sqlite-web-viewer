@@ -5,11 +5,9 @@ import 'package:flutter_app/pagination_bar.dart';
 import 'package:flutter_app/query.dart';
 import 'package:flutter_app/record_header_bar.dart';
 import 'package:flutter_app/record_table.dart';
-import 'package:flutter_app/sql_viewer.dart';
 import 'package:flutter_app/value_display.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:intl/intl.dart';
 
 import 'record_query_info.dart';
 
@@ -224,17 +222,15 @@ class RecordBrowser extends HookWidget {
           : [];
     }
 
-    final pagination = data?.request.countQueryIndex != null
-        ? PaginationBar(
-            currentPage: pageIndex.value,
-            numPerPage: pageSize.value,
-            totalItemCount:
-                data!.data.results[data.request.countQueryIndex!].rows[0][0]
-                    as int,
-            onPageChanged: (newIndex) => pageIndex.value = newIndex,
-            onRefresh: refresh,
-          )
-        : const SizedBox.shrink();
+    final pagination = PaginationBar(
+      currentPage: pageIndex.value,
+      numPerPage: pageSize.value,
+      totalItemCount: data?.request.countQueryIndex != null
+          ? data!.data.results[data.request.countQueryIndex!].rows[0][0] as int
+          : 0,
+      onPageChanged: (newIndex) => pageIndex.value = newIndex,
+      onRefresh: refresh,
+    );
 
     return Stack(
       children: [
@@ -340,110 +336,6 @@ class RecordBrowser extends HookWidget {
         })
         .join(', ');
   }
-
-  Widget _buildSQLViewBox(
-    ThemeData themeData,
-    String sql,
-    void Function() onRefresh,
-    void Function()? onRunInConsole,
-  ) {
-    return _buildInfoBox(
-      themeData,
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 200, maxWidth: 500),
-            child: SingleChildScrollView(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SQLViewer(sql: sql),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8.0),
-          // Refresh button
-          IconButton(
-            onPressed: onRefresh,
-            icon: const Icon(Icons.refresh_outlined),
-            iconSize: 16,
-            tooltip: 'Refresh',
-            visualDensity: VisualDensity.compact,
-          ),
-          // Run in console button
-          if (onRunInConsole != null)
-            IconButton(
-              onPressed: onRunInConsole,
-              icon: const Icon(Icons.play_arrow_outlined),
-              iconSize: 16,
-              tooltip: 'Run in console',
-              visualDensity: VisualDensity.compact,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQueryInfoBox(
-    ThemeData themeData,
-    UseQueryResults<_QueryInfoRequestProvider> data,
-  ) {
-    final countQueryIndex = data.request.countQueryIndex;
-    final totalRecordCount = countQueryIndex != null
-        ? data.data.results[countQueryIndex].rows.first.first as int
-        : 0;
-
-    return _buildInfoBox(
-      themeData,
-      RichText(
-        text: TextSpan(
-          text: '',
-          style: themeData.textTheme.bodySmall,
-          children: [
-            TextSpan(
-              text: _formatRecordCount(
-                data.data.results[data.request.mainQueryIndex].rows.length,
-              ),
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const TextSpan(text: ' rows(s) in '),
-            TextSpan(
-              text: _formatExecutionTime(data.data.executionTimeUs),
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const TextSpan(text: ' at '),
-            TextSpan(
-              text: _formatLastUpdated(data.timestamp),
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const TextSpan(text: '. Total record(s): '),
-            TextSpan(
-              text: _formatRecordCount(totalRecordCount),
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const TextSpan(text: '.'),
-          ],
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-}
-
-String _formatRecordCount(int count) {
-  return NumberFormat.decimalPattern().format(count);
-}
-
-String _formatExecutionTime(int timeUs) {
-  if (timeUs < 1_000_000) {
-    return '${(timeUs / 1000).toStringAsFixed(2)} ms';
-  } else {
-    return '${(timeUs / 1_000_000).toStringAsFixed(2)} s';
-  }
-}
-
-String _formatLastUpdated(DateTime dateTime) {
-  return DateFormat.jms().format(dateTime);
 }
 
 class _ValueDisplayPanel extends HookWidget {

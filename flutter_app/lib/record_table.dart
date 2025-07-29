@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:fading_edge_scrollview/fading_edge_scrollview.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_app/pagination_bar.dart';
 import 'package:flutter_app/record_query_info.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -168,17 +167,6 @@ class RecordTable<CellType> extends HookWidget {
                 currentColumn,
                 style: _headerTextStyle,
                 overflow: TextOverflow.ellipsis,
-              ),
-
-              IconButton(
-                onPressed: () {},
-                iconSize: 16,
-                visualDensity: VisualDensity.compact,
-                icon: Icon(
-                  Icons.filter_alt_outlined,
-                  size: _primaryKeyIconSize,
-                  color: textStyle.color,
-                ),
               ),
 
               if (onSortChanged != null) ...[

@@ -20,15 +20,9 @@ class SupportQueryable(private val db: SupportSQLiteDatabase) : Queryable {
         db.beginTransaction()
         return try {
             val results = queries
-                .mapNotNull { query ->
+                .map { query ->
                     db.query(query.sql, query.params.toTypedArray())
-                        .use { cursor ->
-                            if (cursor.moveToNext()) {
-                                QueryResult.fromCursor(numAffected = 0, cursor)
-                            } else {
-                                null
-                            }
-                        }
+                        .use { cursor -> QueryResult.fromCursor(numAffected = 0, cursor) }
                 }
                 .toList()
 
