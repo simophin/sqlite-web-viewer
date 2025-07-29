@@ -1,166 +1,101 @@
 package dev.fanchao.sqliteviewer
 
+import android.app.NotificationManager
 import android.app.NotificationManager.IMPORTANCE_HIGH
-import android.app.NotificationManager.IMPORTANCE_LOW
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
-import android.os.SystemClock
-import android.util.Log
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.sqlite.db.SupportSQLiteDatabase
-import dev.fanchao.sqliteviewer.model.QueryResult
-import dev.fanchao.sqliteviewer.model.QueryResults
-import dev.fanchao.sqliteviewer.model.Request
-import dev.fanchao.sqliteviewer.model.Version
-import io.ktor.http.ContentType
-import io.ktor.http.defaultForFilePath
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.install
-import io.ktor.server.cio.CIO
-import io.ktor.server.cio.CIOApplicationEngine
-import io.ktor.server.engine.EmbeddedServer
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.request.path
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondNullable
-import io.ktor.server.response.respondOutputStream
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.routing
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-abstract class DatabaseViewerService : Service() {
-    private var job: Job? = null
+internal typealias BroadcastAction = String
+
+internal class DatabaseViewerService : Service() {
+    private val startedPorts = mutableSetOf<Int>()
+
+    private fun syncNotification() {
+        if (startedPorts.isEmpty()) {
+            return
+        }
+
+        val channel = NotificationChannelCompat.Builder("service_viewer", IMPORTANCE_HIGH)
+            .setName("Database Viewer Service")
+            .setDescription("Service for viewing SQLite databases")
+            .build()
+
+        NotificationManagerCompat.from(this).createNotificationChannel(channel)
+
+        for (port in startedPorts) {
+            startForeground(port, NotificationCompat.Builder(this, channel.id)
+                .setContentTitle("Server running")
+                .setContentText("Listening on port $port")
+                // Set small icon to the package's launcher icon
+                .setSmallIcon(R.drawable.outline_architecture)
+                .addAction(R.drawable.ic_stop, "Stop", PendingIntent.getBroadcast(
+                    this,
+                    0,
+                    Intent("${STOP_BROADCAST_ACTION_PREFIX}$port").apply {
+                        `package` = this@DatabaseViewerService.packageName
+                    },
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                ))
+                .build())
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        val port = requireNotNull(intent.getIntExtra(ARG_PORT, -1).takeIf { it > 0 }) {
+            "Port must be specified in the intent"
+        }
+
         when (intent.action) {
             COMMAND_ACTION_START -> {
-                job = GlobalScope.launch {
-                    val db by lazy { openDatabase() }
-                    val dbVersion: Version by lazy {
-                        db.query("SELECT sqlite_version() AS version")
-                            .use { cursor ->
-                                if (cursor.moveToFirst()) {
-                                    Version.fromString(cursor.getString(0))
-                                } else {
-                                    throw IllegalStateException("Failed to get SQLite version")
-                                }
-                            }
-                    }
-
-                    val server = embeddedServer(factory = CIO, port = 3000) {
-                        install(ContentNegotiation) {
-                            json()
-                        }
-
-                        routing {
-                            post("/query") {
-                                val req = call.receive<Request>()
-
-                                val results = ArrayList<QueryResult>(req.queries.size)
-                                val start = SystemClock.elapsedRealtimeNanos()
-                                db.beginTransaction()
-                                try {
-                                    for (query in req.queries) {
-                                        val (sql, params) = query.getQuery(dbVersion)
-                                        db.query(sql, params.toTypedArray())
-                                            .use { cursor ->
-                                                results.add(QueryResult.fromCursor(0, cursor))
-                                            }
-                                    }
-                                    db.setTransactionSuccessful()
-                                } finally {
-                                    db.endTransaction()
-                                }
-
-                                call.respond(QueryResults(
-                                    executionTimeUs = (SystemClock.elapsedRealtime() - start) / 1000L,
-                                    results = results
-                                ))
-                            }
-
-                            get("{...}") {
-                                val path = call.request.path().let {
-                                    if (it == "/") "/index.html" else it
-                                }
-
-                                Log.d("DatabaseViewerService", "Serving static file: $path")
-                                val contentType = ContentType.defaultForFilePath(path)
-                                assets.open("webapp$path").use { inStream ->
-                                    call.respondOutputStream(contentType) {
-                                        inStream.copyTo(this)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    launch {
-                        val port = server.engine.resolvedConnectors().first().port
-
-                        val channel = NotificationChannelCompat.Builder("service_viewer", IMPORTANCE_HIGH)
-                            .setName("Database Viewer Service")
-                            .setDescription("Service for viewing SQLite databases")
-                            .build()
-
-                        val context = this@DatabaseViewerService
-                        NotificationManagerCompat.from(context).createNotificationChannel(channel)
-
-                        startForeground(1, NotificationCompat.Builder(context, channel.id)
-                            .setContentTitle("Server running")
-                            .setContentText("Listening on port $port")
-                            // Set small icon to the package's launcher icon
-                            .setSmallIcon(R.drawable.outline_architecture)
-                            .addAction(R.drawable.ic_stop, "Stop", PendingIntent.getService(
-                                context,
-                                0,
-                                Intent(context, context.javaClass).apply {
-                                    action = COMMAND_ACTION_STOP
-                                },
-                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                            ))
-                            .build())
-                    }
-
-                    server.startSuspend(wait = true)
+                if (startedPorts.add(port)) {
+                    syncNotification()
                 }
             }
 
             COMMAND_ACTION_STOP -> {
-                job?.cancel()
-                job = null
+                startedPorts -= port
 
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
+                NotificationManagerCompat.from(this)
+                    .cancel(port)
+
+                if (startedPorts.isEmpty()) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
             }
         }
         return super.onStartCommand(intent, flags, startId)
     }
 
-    abstract fun openDatabase(): SupportSQLiteDatabase
 
     companion object {
-        const val COMMAND_ACTION_START = "start"
-        const val COMMAND_ACTION_STOP = "stop"
+        private const val COMMAND_ACTION_START = "start"
+        private const val ARG_PORT = "port"
 
-        inline fun <reified S: DatabaseViewerService> createIntent(context: Context, action: String): Intent {
-            return Intent(context, S::class.java).apply {
-                this.action = action
+        private const val COMMAND_ACTION_STOP = "stop"
+
+        fun createStartIntent(context: Context, port: Int): Pair<Intent, BroadcastAction> {
+            return Intent(context, DatabaseViewerService::class.java).apply {
+                action = COMMAND_ACTION_START
+                putExtra(ARG_PORT, port)
+            } to "${STOP_BROADCAST_ACTION_PREFIX}$port"
+        }
+
+        fun createStopIntent(context: Context, port: Int): Intent {
+            return Intent(context, DatabaseViewerService::class.java).apply {
+                action = COMMAND_ACTION_STOP
+                putExtra(ARG_PORT, port)
             }
         }
+
+        private const val STOP_BROADCAST_ACTION_PREFIX = "dev.fanchao.sqliteviewer.STOP_"
     }
 }

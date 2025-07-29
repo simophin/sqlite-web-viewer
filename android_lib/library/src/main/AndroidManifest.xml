@@ -3,7 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application>
-        <service android:name="dev.fanchao.sqliteviewer.DatabaseViewerService" />
+        <service android:name="dev.fanchao.sqliteviewer.DatabaseViewerService"
+            android:exported="false" />
     </application>
 
 </manifest>

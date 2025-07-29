@@ -30,7 +30,7 @@ data class QueryResult(
                                 Cursor.FIELD_TYPE_NULL -> JsonNull
                                 Cursor.FIELD_TYPE_INTEGER -> JsonPrimitive(cursor.getLong(index))
                                 Cursor.FIELD_TYPE_FLOAT -> JsonPrimitive(cursor.getDouble(index))
-                                Cursor.FIELD_TYPE_BLOB -> JsonPrimitive(cursor.getBlob(index).contentToString())
+                                Cursor.FIELD_TYPE_BLOB -> JsonPrimitive(cursor.getBlob(index).let { "BLOB(${it.size} bytes)" })
                                 Cursor.FIELD_TYPE_STRING -> JsonPrimitive(cursor.getString(index))
                                 else -> JsonPrimitive("")
                             }
