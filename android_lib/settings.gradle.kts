@@ -21,4 +21,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "SQLite viewer"
 include(":library")
+project(":library").name = "sqlite-web-viewer"
+
 include(":demoapp")

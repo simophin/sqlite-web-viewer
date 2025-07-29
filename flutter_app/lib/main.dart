@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
       ),
       home: const MyHomePage(title: 'Home page'),
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.system,
     );
   }
 }

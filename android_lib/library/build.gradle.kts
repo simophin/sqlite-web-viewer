@@ -4,7 +4,11 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlinx.serialization)
+    id("maven-publish")
 }
+
+group = "dev.fanchao"
+version = System.getenv("VERSION") ?: "dev-snapshot"
 
 android {
     namespace = "dev.fanchao.sqliteviewer"
@@ -28,6 +32,34 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+
+
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+
+        repositories {
+            maven {
+                name = "local"
+                url = uri(layout.buildDirectory.dir("repo"))
+            }
+        }
     }
 }
 

@@ -41,7 +41,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":library"))
+    implementation(project(":sqlite-web-viewer"))
 
     implementation(libs.androidx.sqlite.framework)
     implementation(libs.androidx.core.ktx)
