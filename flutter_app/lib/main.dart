@@ -4,14 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/console_view.dart';
 import 'package:flutter_app/drag_handle.dart';
 import 'package:flutter_app/query.dart';
-import 'package:flutter_app/record_browser.dart';
 import 'package:flutter_app/section_nav.dart';
 import 'package:flutter_app/shared_prefs.dart';
+import 'package:flutter_app/table_view.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:lazy_load_indexed_stack/lazy_load_indexed_stack.dart';
 
 import 'nav_item.dart';
-import 'record_query_info.dart';
 
 void main() {
   runApp(const MyApp());
@@ -146,14 +145,14 @@ class MyHomePage extends HookWidget {
                         children: navItems
                             .mapIndexed<Widget>((index, item) {
                               final child = switch (item) {
-                                NavItemTable(name: final name) => RecordBrowser(
+                                NavItemTable(name: final name) => TableView(
                                   endpoint: endpoint,
-                                  queryInfo: TableRecordQueryInfo(name),
+                                  tableName: name,
                                   onRunInConsole: (query) {},
                                 ),
-                                NavItemView(name: final name) => RecordBrowser(
+                                NavItemView(name: final name) => TableView(
                                   endpoint: endpoint,
-                                  queryInfo: TableRecordQueryInfo(name),
+                                  tableName: name,
                                   onRunInConsole: (query) {},
                                 ),
                                 NavItemConsole(name: final name) =>
