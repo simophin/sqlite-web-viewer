@@ -29,8 +29,15 @@ jobs:
       - name: Copy web build to android library
         run: cp -Rv build/web ../android_lib/library/src/main/assets/webapp
         working-directory: flutter_app
-        
+
       - name: Build android library
         run: ./gradlew :sqlite-web-viewer:assembleRelease
+        working-directory: android_lib
+
+      - name: Upload AAR
+        uses: actions/upload-artifact@v3
+        with:
+          name: sqlite-web-viewer.aar
+          path: android_lib/sqlite-web-viewer/library/build/outputs/aar/sqlite-web-viewer-release.aar
     
      
