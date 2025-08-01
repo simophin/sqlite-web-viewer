@@ -21,10 +21,15 @@ jobs:
       - name: Run flutter build runner
         run: dart run build_runner build -d
         working-directory: flutter_app
+
       - name: Run flutter build
-        run: flutter build web --wasm --release && \
-              cp -Rv build/web ../android_lib/library/src/main/assets/webapp
+        run: flutter build web --wasm --release
         working-directory: flutter_app
+
+      - name: Copy web build to android library
+        run: cp -Rv build/web ../android_lib/library/src/main/assets/webapp
+        working-directory: flutter_app
+        
       - name: Build android library
         run: ./gradlew :sqlite-web-viewer:assembleRelease
     
