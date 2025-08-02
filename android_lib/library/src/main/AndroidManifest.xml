@@ -2,8 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+
     <application>
         <service android:name="dev.fanchao.sqliteviewer.DatabaseViewerService"
+            android:foregroundServiceType="remoteMessaging"
             android:exported="false" />
     </application>
 
