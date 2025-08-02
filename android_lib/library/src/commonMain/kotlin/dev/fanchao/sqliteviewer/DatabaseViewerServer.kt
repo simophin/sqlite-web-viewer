@@ -19,50 +19,52 @@ import io.ktor.server.response.respondSource
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.io.RawSource
+
+expect fun startDatabaseViewerServer(
+    platformContext: Any,
+    scope: CoroutineScope,
+    port: Int,
+    queryable: Queryable,
+): Job
 
 /**
  * Launches the Ktor server in a new Job, returns Pair<Job, Deferred<Int>>.
  * Job is the server handle (cancel to stop), Deferred<Int> completes with the bound port.
  */
-fun startDatabaseViewerServer(
+fun     startDatabaseViewerServerShared(
+    scope: CoroutineScope,
     port: Int,
     queryable: Queryable,
-    assetProvider: StaticAssetProvider? = null
+    assetProvider: StaticAssetProvider
 ): Pair<Job, Deferred<Int>> {
-    val portDeferred = CompletableDeferred<Int>()
-    val job = GlobalScope.launch(Dispatchers.Default) {
-        val server = embeddedServer(
-            factory = CIO,
-            port = port,
-        ) {
-            configureDatabaseViewerRouting(queryable, assetProvider)
-        }
-        server.start(wait = false)
-        portDeferred.complete(server.environment.connectors.first().port)
-        try {
-            // Wait until cancelled
-            this@launch.join()
-        } finally {
-            server.stop(1000, 2000)
-        }
+    val server = embeddedServer(
+        factory = CIO,
+        port = port,
+    ) {
+        configureDatabaseViewerRouting(queryable, assetProvider)
     }
+
+    val job = scope.launch {
+        server.startSuspend(wait = true)
+    }
+
+    job.invokeOnCompletion {
+        server.stop(1000, 5000)
+    }
+
+    val portDeferred = scope.async {
+        server.engine.resolvedConnectors().first().port
+    }
+
     return job to portDeferred
 }
 
-
-
-
-interface StaticAssetProvider {
-    /**
-     * Returns an InputStream for the given asset path, or null if not found.
-     * The path always starts with a slash, e.g. "/index.html".
-     */
-    fun openAsset(path: String): RawSource?
-}
-
-fun Application.configureDatabaseViewerRouting(queryable: Queryable, assetProvider: StaticAssetProvider? = null) {
+private fun Application.configureDatabaseViewerRouting(queryable: Queryable, assetProvider: StaticAssetProvider) {
     install(ContentNegotiation) { json() }
     routing {
         post("/query") {
@@ -74,18 +76,17 @@ fun Application.configureDatabaseViewerRouting(queryable: Queryable, assetProvid
             )
             call.respond(results)
         }
-        if (assetProvider != null) {
-            get("{...}") {
-                val path = call.request.path().let {
-                    if (it == "/") "/index.html" else it
-                }
-                val contentType = ContentType.defaultForFilePath(path)
-                val inStream = assetProvider.openAsset(path)
-                if (inStream != null) {
-                    call.respondSource(inStream, contentType)
-                } else {
-                    call.respond(io.ktor.http.HttpStatusCode.NotFound)
-                }
+
+        get("{...}") {
+            val path = call.request.path().let {
+                if (it == "/" || !it.startsWith("/")) "/index.html" else it
+            }
+            val contentType = ContentType.defaultForFilePath(path)
+            val inStream = assetProvider.openAsset(path)
+            if (inStream != null) {
+                call.respondSource(inStream, contentType)
+            } else {
+                call.respond(io.ktor.http.HttpStatusCode.NotFound)
             }
         }
     }

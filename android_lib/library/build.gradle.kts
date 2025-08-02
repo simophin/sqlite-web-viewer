@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.library)
@@ -7,7 +5,7 @@ plugins {
     id("maven-publish")
 }
 
-group = "dev.fanchao"
+group = "io.github.simophin"
 version = System.getenv("VERSION") ?: "dev-snapshot"
 
 kotlin {
@@ -22,12 +20,14 @@ kotlin {
                 implementation(libs.ktor.server.cio)
                 implementation(libs.ktor.server.content.negotiation)
                 implementation(libs.ktor.serialization.kotlinx.json)
+                implementation(libs.kotlinx.io)
             }
         }
         val androidMain by getting {
             dependencies {
                 implementation(libs.androidx.core.ktx)
                 implementation(libs.androidx.sqlite)
+                implementation(libs.kotlinx.io.jvm)
             }
         }
         val iosMain by creating {

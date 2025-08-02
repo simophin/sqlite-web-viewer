@@ -49,8 +49,8 @@ class MainActivity : ComponentActivity() {
 
         binding.start.setOnClickListener {
             job = startDatabaseViewerServer(
-                GlobalScope,
-                context = application,
+                platformContext = this,
+                scope = GlobalScope,
                 port = 3000,
                 queryable = SupportQueryable(factory.writableDatabase)
             )
