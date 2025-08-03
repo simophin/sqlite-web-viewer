@@ -2,7 +2,8 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlinx.serialization)
-    id("maven-publish")
+    `maven-publish`
+    signing
 }
 
 group = "io.github.simophin"
