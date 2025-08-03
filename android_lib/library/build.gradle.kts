@@ -4,10 +4,11 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlinx.serialization)
-    id("maven-publish")
+    `maven-publish`
+    signing
 }
 
-group = "dev.fanchao"
+group = "io.github.simophin"
 version = System.getenv("VERSION") ?: "dev-snapshot"
 
 android {
@@ -61,6 +62,10 @@ publishing {
             }
         }
     }
+}
+
+signing {
+    sign(publishing.publications["release"])
 }
 
 kotlin {
