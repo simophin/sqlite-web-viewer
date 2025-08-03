@@ -23,6 +23,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 expect fun startDatabaseViewerServer(
@@ -36,12 +38,12 @@ expect fun startDatabaseViewerServer(
  * Launches the Ktor server in a new Job, returns Pair<Job, Deferred<Int>>.
  * Job is the server handle (cancel to stop), Deferred<Int> completes with the bound port.
  */
-fun     startDatabaseViewerServerShared(
-    scope: CoroutineScope,
+suspend fun startDatabaseViewerServerShared(
     port: Int,
     queryable: Queryable,
-    assetProvider: StaticAssetProvider
-): Pair<Job, Deferred<Int>> {
+    assetProvider: StaticAssetProvider,
+    portListened: SendChannel<Int>,
+) = coroutineScope {
     val server = embeddedServer(
         factory = CIO,
         port = port,
@@ -49,19 +51,15 @@ fun     startDatabaseViewerServerShared(
         configureDatabaseViewerRouting(queryable, assetProvider)
     }
 
-    val job = scope.launch {
-        server.startSuspend(wait = true)
+    launch {
+        portListened.send(server.engine.resolvedConnectors().first().port)
     }
 
-    job.invokeOnCompletion {
+    try {
+        server.startSuspend(wait = true)
+    } finally {
         server.stop(1000, 5000)
     }
-
-    val portDeferred = scope.async {
-        server.engine.resolvedConnectors().first().port
-    }
-
-    return job to portDeferred
 }
 
 private fun Application.configureDatabaseViewerRouting(queryable: Queryable, assetProvider: StaticAssetProvider) {

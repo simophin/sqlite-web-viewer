@@ -8,6 +8,7 @@ import android.os.Build
 import dev.fanchao.sqliteviewer.model.Queryable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.lang.ref.WeakReference
@@ -24,14 +25,18 @@ actual fun startDatabaseViewerServer(
     val applicationContext = context.applicationContext
 
     return scope.launch {
-        val (job, portDeferred) = startDatabaseViewerServerShared(
-            scope = this,
-            port = port,
-            queryable = queryable,
-            assetProvider = AndroidAssetProvider(applicationContext)
-        )
+        val portChannel = Channel<Int>()
 
-        val actualPort = portDeferred.await()
+        val job = launch {
+            startDatabaseViewerServerShared(
+                port = port,
+                queryable = queryable,
+                assetProvider = AndroidAssetProvider(applicationContext),
+                portListened = portChannel,
+            )
+        }
+
+        val actualPort = portChannel.receive()
 
         val (intent, broadcastAction) = DatabaseViewerService.createStartIntent(applicationContext, actualPort)
         contextRef.get()?.startService(intent)
