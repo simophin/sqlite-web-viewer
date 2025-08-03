@@ -20,11 +20,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 expect fun startDatabaseViewerServer(
@@ -42,8 +39,7 @@ suspend fun startDatabaseViewerServerShared(
     port: Int,
     queryable: Queryable,
     assetProvider: StaticAssetProvider,
-    portListened: SendChannel<Int>,
-) = coroutineScope {
+): Pair<Job, Int> {
     val server = embeddedServer(
         factory = CIO,
         port = port,
@@ -51,15 +47,13 @@ suspend fun startDatabaseViewerServerShared(
         configureDatabaseViewerRouting(queryable, assetProvider)
     }
 
-    launch {
-        portListened.send(server.engine.resolvedConnectors().first().port)
+    val job = GlobalScope.launch {
+        runCatching {  server.startSuspend(wait = true) }
+        server.stop(1000, 1000)
     }
 
-    try {
-        server.startSuspend(wait = true)
-    } finally {
-        server.stop(1000, 5000)
-    }
+    val port = server.engine.resolvedConnectors().first().port
+    return job to port
 }
 
 private fun Application.configureDatabaseViewerRouting(queryable: Queryable, assetProvider: StaticAssetProvider) {

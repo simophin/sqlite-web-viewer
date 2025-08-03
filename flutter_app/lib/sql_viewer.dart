@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -15,10 +13,15 @@ class SQLViewer extends HookWidget {
   Widget build(BuildContext context) {
     final highlighter = useHighlighter();
 
+    final monospaceTextStyle = TextStyle(fontFamily: 'Monospace', fontSize: 14);
+
     if (highlighter == null) {
-      return SelectableText(sql);
+      return SelectableText(sql, style: monospaceTextStyle);
     } else {
-      return SelectableText.rich(highlighter.highlight(sql));
+      return SelectableText.rich(
+        highlighter.highlight(sql),
+        style: monospaceTextStyle,
+      );
     }
   }
 }

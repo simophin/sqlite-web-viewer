@@ -25,20 +25,13 @@ actual fun startDatabaseViewerServer(
     val applicationContext = context.applicationContext
 
     return scope.launch {
-        val portChannel = Channel<Int>()
+        val (job, actualPort) = startDatabaseViewerServerShared(
+            port = port,
+            queryable = queryable,
+            assetProvider = AndroidAssetProvider(applicationContext),
+        )
 
-        val job = launch {
-            startDatabaseViewerServerShared(
-                port = port,
-                queryable = queryable,
-                assetProvider = AndroidAssetProvider(applicationContext),
-                portListened = portChannel,
-            )
-        }
-
-        val actualPort = portChannel.receive()
-
-        val (intent, broadcastAction) = DatabaseViewerService.createStartIntent(applicationContext, actualPort)
+        val (intent, broadcastAction) = DatabaseViewerService.createStartIntent(applicationContext, port)
         contextRef.get()?.startService(intent)
 
         try {
