@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
 
         binding.start.setOnClickListener {
             job = startDatabaseViewerServer(
-                platformContext = this,
+                context = this,
                 scope = GlobalScope,
                 port = 3000,
                 queryable = SupportQueryable(factory.writableDatabase)

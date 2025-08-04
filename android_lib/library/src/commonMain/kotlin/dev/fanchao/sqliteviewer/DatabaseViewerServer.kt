@@ -19,17 +19,9 @@ import io.ktor.server.response.respondSource
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-
-expect fun startDatabaseViewerServer(
-    platformContext: Any,
-    scope: CoroutineScope,
-    port: Int,
-    queryable: Queryable,
-): Job?
 
 /**
  * Launches the Ktor server in a new Job, returns Pair<Job, Deferred<Int>>.

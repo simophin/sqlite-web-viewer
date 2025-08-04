@@ -12,8 +12,15 @@ version = System.getenv("VERSION") ?: "dev-snapshot"
 kotlin {
     androidTarget()
     iosX64()
-    iosArm64()
+    iosArm64 {
+        binaries {
+            framework {
+                baseName = "sqliteviewer"
+            }
+        }
+    }
     iosSimulatorArm64()
+
 
     sourceSets {
         val commonMain by getting {
