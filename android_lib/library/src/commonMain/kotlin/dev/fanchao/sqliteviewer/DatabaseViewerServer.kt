@@ -29,7 +29,7 @@ expect fun startDatabaseViewerServer(
     scope: CoroutineScope,
     port: Int,
     queryable: Queryable,
-): Job
+): Job?
 
 /**
  * Launches the Ktor server in a new Job, returns Pair<Job, Deferred<Int>>.

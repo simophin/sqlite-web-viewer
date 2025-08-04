@@ -27,6 +27,7 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation(libs.androidx.core.ktx)
+                implementation(libs.androidx.activity)
                 implementation(libs.androidx.sqlite)
                 implementation(libs.kotlinx.io.jvm)
             }
@@ -38,6 +39,8 @@ kotlin {
         val iosArm64Main by getting { dependsOn(iosMain) }
         val iosSimulatorArm64Main by getting { dependsOn(iosMain) }
     }
+
+    jvmToolchain(21)
 }
 
 android {
@@ -57,14 +60,14 @@ android {
             )
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
     publishing {
         singleVariant("release") {
             withSourcesJar()
         }
+    }
+
+    buildFeatures {
+        viewBinding = true
     }
 }
 

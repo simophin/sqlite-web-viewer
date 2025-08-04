@@ -1,4 +1,3 @@
-// ...existing code from main/java/dev/fanchao/sqliteviewer/DatabaseViewerService.kt...
 package dev.fanchao.sqliteviewer
 
 import android.app.NotificationManager.IMPORTANCE_HIGH

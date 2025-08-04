@@ -55,8 +55,10 @@ class MainActivity : ComponentActivity() {
                 queryable = SupportQueryable(factory.writableDatabase)
             )
 
-            binding.start.isEnabled = false
-            binding.stop.isEnabled = true
+            if (job != null) {
+                binding.start.isEnabled = false
+                binding.stop.isEnabled = true
+            }
         }
 
         binding.stop.setOnClickListener {

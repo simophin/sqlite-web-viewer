@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="permission_request_message">SQLite viewer requires notification permission to start a foreground service, please grant it here.</string>
+    <string name="grant_permission">Grant Permission</string>
+</resources>
