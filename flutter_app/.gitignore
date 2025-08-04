@@ -46,3 +46,6 @@ app.*.map.json
 
 *.freezed.dart
 *.g.dart
+
+ios
+android

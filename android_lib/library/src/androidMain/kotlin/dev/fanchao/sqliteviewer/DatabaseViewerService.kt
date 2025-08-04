@@ -1,6 +1,5 @@
 package dev.fanchao.sqliteviewer
 
-import android.app.NotificationManager
 import android.app.NotificationManager.IMPORTANCE_HIGH
 import android.app.PendingIntent
 import android.app.Service
@@ -74,7 +73,6 @@ internal class DatabaseViewerService : Service() {
         }
         return super.onStartCommand(intent, flags, startId)
     }
-
 
     companion object {
         private const val COMMAND_ACTION_START = "start"

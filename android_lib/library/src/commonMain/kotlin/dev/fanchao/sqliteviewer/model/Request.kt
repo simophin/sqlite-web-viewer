@@ -1,3 +1,4 @@
+
 package dev.fanchao.sqliteviewer.model
 
 import kotlinx.serialization.SerialName

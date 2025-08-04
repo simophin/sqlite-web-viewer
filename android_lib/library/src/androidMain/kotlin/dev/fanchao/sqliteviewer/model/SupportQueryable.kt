@@ -1,3 +1,4 @@
+
 package dev.fanchao.sqliteviewer.model
 
 import android.os.SystemClock

@@ -49,14 +49,16 @@ class MainActivity : ComponentActivity() {
 
         binding.start.setOnClickListener {
             job = startDatabaseViewerServer(
-                GlobalScope,
-                context = application,
+                platformContext = this,
+                scope = GlobalScope,
                 port = 3000,
                 queryable = SupportQueryable(factory.writableDatabase)
             )
 
-            binding.start.isEnabled = false
-            binding.stop.isEnabled = true
+            if (job != null) {
+                binding.start.isEnabled = false
+                binding.stop.isEnabled = true
+            }
         }
 
         binding.stop.setOnClickListener {

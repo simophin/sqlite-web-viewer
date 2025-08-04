@@ -27,7 +27,7 @@ jobs:
         working-directory: flutter_app
 
       - name: Copy web build to android library
-        run: cp -Rv build/web ../android_lib/library/src/main/assets/webapp
+        run: cp -Rv build/web ../android_lib/library/src/androidMain/assets/webapp
         working-directory: flutter_app
 
       - name: Build android library

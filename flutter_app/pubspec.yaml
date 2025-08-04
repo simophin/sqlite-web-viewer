@@ -73,6 +73,18 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  fonts:
+    - family: Monospace
+      fonts:
+        - asset: fonts/Hack-Regular.ttf
+        - asset: fonts/Hack-Bold.ttf
+          weight: 700
+        - asset: fonts/Hack-Italic.ttf
+          style: italic
+        - asset: fonts/Hack-BoldItalic.ttf
+          weight: 700
+          style: italic
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
