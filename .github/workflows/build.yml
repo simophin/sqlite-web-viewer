@@ -26,6 +26,14 @@ jobs:
           channel: stable
           # Cache the Flutter SDK
           cache: true
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+        
       - name: Run flutter build runner
         run: dart run build_runner build -d
         working-directory: flutter_app
