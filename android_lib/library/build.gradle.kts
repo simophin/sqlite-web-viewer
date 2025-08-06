@@ -2,8 +2,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlinx.serialization)
-    `maven-publish`
-    signing
+    alias(libs.plugins.publish)
 }
 
 group = "io.github.simophin"
@@ -78,22 +77,38 @@ android {
     }
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("release") {
-            groupId = project.group.toString()
-            artifactId = project.name
-            version = project.version.toString()
+mavenPublishing {
+    publishToMavenCentral()
 
-            afterEvaluate {
-                from(components["release"])
+    signAllPublications()
+}
+
+mavenPublishing {
+    coordinates(groupId = group.toString(), "sqlite-web-viewer", version.toString())
+
+    pom {
+        name.set("SQLite Web Viewer")
+        description.set("View SQLite databases in a web browser with a simple interface.")
+        inceptionYear.set("2025")
+        url.set("https://github.com/simophin/sqlite-web-viewer/")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                distribution.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
             }
         }
-    }
-    repositories {
-        maven {
-            name = "local"
-            url = uri(layout.buildDirectory.dir("repo"))
+        developers {
+            developer {
+                id.set("simophin")
+                name.set("Fanchao L")
+                url.set("https://github.com/simophin/")
+            }
+        }
+        scm {
+            url.set("https://github.com/simophin/sqlite-web-viewer/")
+            connection.set("scm:git:git://github.com/simophin/sqlite-web-viewer.git")
+            developerConnection.set("scm:git:ssh://git@github.com/simophin/sqlite-web-viewer.git")
         }
     }
 }
