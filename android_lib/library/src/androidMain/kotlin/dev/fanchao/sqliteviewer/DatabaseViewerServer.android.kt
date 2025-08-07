@@ -7,8 +7,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import dev.fanchao.sqliteviewer.model.Queryable
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.lang.ref.WeakReference
@@ -16,30 +17,53 @@ import kotlin.coroutines.resume
 
 fun startDatabaseViewerServer(
     context: Activity,
-    scope: CoroutineScope,
     port: Int,
     queryable: Queryable,
-): Job? {
+): StartedInstance {
     val contextRef = WeakReference(context)
     val applicationContext = context.applicationContext
 
-    return scope.launch {
-        val (job, actualPort) = startDatabaseViewerServerShared(
-            port = port,
-            queryable = queryable,
-            assetProvider = AndroidAssetProvider(applicationContext),
-        )
+    val instance = startDatabaseViewerServerShared(
+        port = port,
+        queryable = queryable,
+        assetProvider = AndroidAssetProvider(applicationContext),
+    )
 
-        val (intent, broadcastAction) = DatabaseViewerService.createStartIntent(applicationContext, port)
-        contextRef.get()?.startService(intent)
+    GlobalScope.launch {
+        instance.state
+            .transformWhile { state ->
+                emit(state)
+                state !is StartedInstance.State.Stopped
+            }
+            .collect { state ->
+                when (state) {
+                    StartedInstance.State.Starting -> {}
 
-        try {
-            waitForBroadcast(applicationContext, broadcastAction)
-        } finally {
-            applicationContext.startService(DatabaseViewerService.createStopIntent(applicationContext, actualPort))
-            job.cancel()
-        }
+                    is StartedInstance.State.Running -> {
+                        val (intent, broadcastAction) = DatabaseViewerService.createStartIntent(applicationContext, port)
+                        contextRef.get()?.startService(intent)
+
+                        launch {
+                            waitForBroadcast(applicationContext, broadcastAction)
+                            instance.stop()
+                        }
+                    }
+
+                    is StartedInstance.State.Stopped -> {
+                        if (state.port != null) {
+                            applicationContext.startService(
+                                DatabaseViewerService.createStopIntent(
+                                    context = applicationContext,
+                                    port = state.port
+                                )
+                            )
+                        }
+                    }
+                }
+            }
     }
+
+    return instance
 }
 
 private suspend fun waitForBroadcast(

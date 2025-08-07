@@ -10,6 +10,7 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
+import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.path
@@ -19,19 +20,67 @@ import io.ktor.server.response.respondSource
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+
+@OptIn(ExperimentalAtomicApi::class, DelicateCoroutinesApi::class)
+class StartedInstance (
+    private val server: EmbeddedServer<*, *>
+) {
+    sealed interface State {
+        data object Starting : State
+        data class Running(val port: Int) : State
+        data class Stopped(val port: Int?) : State
+    }
+
+    private val stopRequested = AtomicBoolean(false)
+
+    val state: StateFlow<State> = flow {
+        var port: Int? = null
+        try {
+            coroutineScope {
+                val startJob = launch {
+                    server.startSuspend(wait = true)
+                }
+
+                port = server.engine.resolvedConnectors().first().port
+                emit(State.Running(port))
+                startJob.join() // Wait for the server to finish starting
+            }
+        } catch (e: Throwable) {
+            if (e is CancellationException) throw e
+        } finally {
+            emit(State.Stopped(port))
+        }
+    }.stateIn(GlobalScope, started = SharingStarted.Eagerly, initialValue = State.Starting)
+
+    fun stop() {
+        if (stopRequested.compareAndSet(expectedValue = false, newValue = true)) {
+            GlobalScope.launch {
+                server.stopSuspend()
+            }
+        }
+    }
+}
 
 /**
  * Launches the Ktor server in a new Job, returns Pair<Job, Deferred<Int>>.
  * Job is the server handle (cancel to stop), Deferred<Int> completes with the bound port.
  */
-suspend fun startDatabaseViewerServerShared(
+fun startDatabaseViewerServerShared(
     port: Int,
     queryable: Queryable,
     assetProvider: StaticAssetProvider,
-): Pair<Job, Int> {
+): StartedInstance {
     val server = embeddedServer(
         factory = CIO,
         port = port,
@@ -39,13 +88,7 @@ suspend fun startDatabaseViewerServerShared(
         configureDatabaseViewerRouting(queryable, assetProvider)
     }
 
-    val job = GlobalScope.launch {
-        runCatching {  server.startSuspend(wait = true) }
-        server.stop(1000, 1000)
-    }
-
-    val port = server.engine.resolvedConnectors().first().port
-    return job to port
+    return StartedInstance(server)
 }
 
 private fun Application.configureDatabaseViewerRouting(queryable: Queryable, assetProvider: StaticAssetProvider) {

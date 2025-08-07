@@ -5,10 +5,13 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import java.net.Inet4Address
+import java.net.NetworkInterface
 
 internal typealias BroadcastAction = String
 
@@ -27,21 +30,61 @@ internal class DatabaseViewerService : Service() {
 
         NotificationManagerCompat.from(this).createNotificationChannel(channel)
 
+        val ipAddresses = NetworkInterface.getNetworkInterfaces()
+            .asSequence()
+            .flatMap { it.inetAddresses.asSequence() }
+            .filter { !it.isLoopbackAddress && !it.isMulticastAddress }
+            .filterIsInstance<Inet4Address>()
+            .toSet()
+
         for (port in startedPorts) {
-            startForeground(port, NotificationCompat.Builder(this, channel.id)
-                .setContentTitle("Server running")
-                .setContentText("Listening on port $port")
+            val listeningOn = ipAddresses.map { "${it.hostAddress}:$port" } + "localhost:$port"
+            val listeningOnText = listeningOn.joinToString(separator = ", ")
+
+            val builder = NotificationCompat.Builder(this, channel.id)
+                .setOngoing(true)
+                .setContentTitle("SQLite Viewer Service running")
+                .setContentText("Listening on $listeningOnText")
                 // Set small icon to the package's launcher icon
                 .setSmallIcon(R.drawable.outline_architecture)
-                .addAction(R.drawable.ic_stop, "Stop", PendingIntent.getBroadcast(
-                    this,
-                    0,
-                    Intent("${STOP_BROADCAST_ACTION_PREFIX}$port").apply {
-                        `package` = this@DatabaseViewerService.packageName
-                    },
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                ))
-                .build())
+                .addAction(
+                    R.drawable.ic_stop, "Stop", PendingIntent.getBroadcast(
+                        this,
+                        0,
+                        Intent("${STOP_BROADCAST_ACTION_PREFIX}$port").apply {
+                            `package` = this@DatabaseViewerService.packageName
+                        },
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                )
+                .addAction(
+                    R.drawable.baseline_article_24, "Copy adb command", PendingIntent.getBroadcast(
+                        this,
+                        1,
+                        Intent(this, CopyTextReceiver::class.java)
+                            .putExtra(
+                                CopyTextReceiver.EXTRA_TEXT,
+                                "adb forward tcp:$port tcp:$port"
+                            ),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+
+                    )
+                )
+
+            for ((index, address) in listeningOn.withIndex()) {
+                builder.addAction(
+                    R.drawable.baseline_article_24, "Copy \"$address\"",
+                    PendingIntent.getBroadcast(
+                        this,
+                        index + 2,
+                        Intent(this, CopyTextReceiver::class.java)
+                            .putExtra(CopyTextReceiver.EXTRA_TEXT, address),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                )
+            }
+
+            startForeground(port, builder.build())
         }
     }
 

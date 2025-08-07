@@ -8,10 +8,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import dev.fanchao.demoapp.databinding.ActivityMainBinding
+import dev.fanchao.sqliteviewer.StartedInstance
 import dev.fanchao.sqliteviewer.model.SupportQueryable
 import dev.fanchao.sqliteviewer.startDatabaseViewerServer
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.Job
 import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
@@ -45,25 +44,22 @@ class MainActivity : ComponentActivity() {
         val binding = ActivityMainBinding.inflate(LayoutInflater.from(this))
         setContentView(binding.root)
 
-        var job: Job? = null
+        var instance: StartedInstance? = null
 
         binding.start.setOnClickListener {
-            job = startDatabaseViewerServer(
+            instance = startDatabaseViewerServer(
                 context = this,
-                scope = GlobalScope,
                 port = 3000,
                 queryable = SupportQueryable(factory.writableDatabase)
             )
 
-            if (job != null) {
-                binding.start.isEnabled = false
-                binding.stop.isEnabled = true
-            }
+            binding.start.isEnabled = false
+            binding.stop.isEnabled = true
         }
 
         binding.stop.setOnClickListener {
-            job?.cancel()
-            job = null
+            instance?.stop()
+            instance = null
 
             binding.start.isEnabled = true
             binding.stop.isEnabled = false
