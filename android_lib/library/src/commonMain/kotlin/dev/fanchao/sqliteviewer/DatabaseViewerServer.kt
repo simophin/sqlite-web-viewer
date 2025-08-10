@@ -5,6 +5,7 @@ package dev.fanchao.sqliteviewer
 import dev.fanchao.sqliteviewer.model.Queryable
 import dev.fanchao.sqliteviewer.model.Request
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.defaultForFilePath
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -13,6 +14,7 @@ import io.ktor.server.cio.CIO
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
 import io.ktor.server.request.path
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -93,6 +95,14 @@ fun startDatabaseViewerServerShared(
 
 private fun Application.configureDatabaseViewerRouting(queryable: Queryable, assetProvider: StaticAssetProvider) {
     install(ContentNegotiation) { json() }
+    install(CORS) {
+        anyHost()
+        allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.AccessControlAllowOrigin)
+        allowHeader(HttpHeaders.AccessControlAllowHeaders)
+        anyMethod()
+        allowCredentials = true
+    }
     routing {
         post("/query") {
             val req = call.receive<Request>()

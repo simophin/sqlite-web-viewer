@@ -19,12 +19,17 @@ kotlin {
         }
     }
     iosSimulatorArm64()
-
+    jvm {
+        mainRun {
+            mainClass.set("dev.fanchao.sqliteviewer.ServerKt")
+        }
+    }
 
     sourceSets {
         val commonMain by getting {
             dependencies {
                 implementation(libs.ktor.server.cio)
+                implementation(libs.ktor.server.cors)
                 implementation(libs.ktor.server.content.negotiation)
                 implementation(libs.ktor.serialization.kotlinx.json)
                 implementation(libs.kotlinx.io)
@@ -44,6 +49,13 @@ kotlin {
         val iosX64Main by getting { dependsOn(iosMain) }
         val iosArm64Main by getting { dependsOn(iosMain) }
         val iosSimulatorArm64Main by getting { dependsOn(iosMain) }
+
+        val jvmMain by getting {
+            dependencies {
+                implementation(libs.androidx.sqlite.bundled)
+                runtimeOnly(libs.slf4j.simple)
+            }
+        }
     }
 
     jvmToolchain(21)
