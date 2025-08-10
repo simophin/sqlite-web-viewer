@@ -1,6 +1,6 @@
-import type {Pagination, RecordQueryable, Sorting} from "./RecordQueryable.tsx";
-import {createResource, createSignal, For, Match, Show, Switch} from "solid-js";
-import {executeSQL, type Request} from "../api.ts";
+import type { Pagination, RecordQueryable, Sorting } from "./RecordQueryable.tsx";
+import { createResource, createSignal, For, Match, Show, Switch } from "solid-js";
+import { executeSQL, type Request } from "../api.ts";
 
 
 export default function RecordBrowser(props: {
@@ -30,13 +30,13 @@ export default function RecordBrowser(props: {
         }
 
         return {
-            request: {queries} as Request,
+            request: { queries } as Request,
             mainQueryIndex,
             countQueryIndex,
         };
     };
 
-    const [data, {refetch}] = createResource(request, async ({request, mainQueryIndex, countQueryIndex}) => {
+    const [data, { refetch }] = createResource(request, async ({ request, mainQueryIndex, countQueryIndex }) => {
         const resp = await executeSQL(request);
 
         return {
@@ -52,11 +52,9 @@ export default function RecordBrowser(props: {
             <p>Error loading data: {data.error()}</p>
         </Match>
 
-        <Match when={data()}>
+        <Match when={!!data()}>
             <table>
-                <thead>
-                    <For each={data()!.mainResult!.columns}>{(col) => <th>{col.name}</th>}</For>
-                </thead>
+                <thead><For each={data()!.mainResult!.columns}>{(col) => <th>{col.name}</th>}</For></thead>
                 <tbody>
                     <For each={data()!.mainResult!.rows}>{(row) =>
                         <tr>
