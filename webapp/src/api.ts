@@ -29,7 +29,7 @@ export interface QueryResult {
 
 
 export async function executeSQL(req: Request): Promise<Response> {
-    const res = await fetch('http://fanchao-mibook:3000/query', {
+    const res = await fetch('http://localhost:3000/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req)

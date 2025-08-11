@@ -1,5 +1,7 @@
+import "./RecordBrowser.css";
+
 import type { Pagination, RecordQueryable, Sorting } from "./RecordQueryable.tsx";
-import { createResource, createSignal, For, Match, Show, Switch } from "solid-js";
+import {batch, createResource, createSignal, For, Match, Show, Switch, untrack} from "solid-js";
 import { executeSQL, type Request } from "../api.ts";
 
 
@@ -9,6 +11,10 @@ export default function RecordBrowser(props: {
     const [sorting, setSorting] = createSignal<Sorting | undefined>();
     const [pagination, setPagination] = createSignal<Pagination | undefined>()
     const [filter, setFilter] = createSignal<string | undefined>();
+    const [filterInput, setFilterInput] = createSignal<string | undefined>(filter());
+
+    const [selectedRow, setSelectedRow] = createSignal<number | undefined>();
+    const [selectedColumn, setSelectedColumn] = createSignal<number | undefined>();
 
     const request = () => {
         const queries = [];
@@ -53,12 +59,21 @@ export default function RecordBrowser(props: {
         </Match>
 
         <Match when={!!data()}>
-            <table>
-                <thead><For each={data()!.mainResult!.columns}>{(col) => <th>{col.name}</th>}</For></thead>
+            <table class="data-table">
+                <thead class="sticky top-0"><For each={data()!.mainResult!.columns}>{(col) => <th class="p-1">{col.name}</th>}</For></thead>
                 <tbody>
-                    <For each={data()!.mainResult!.rows}>{(row) =>
+                    <For each={data()!.mainResult!.rows}>{(row, rowIndex) =>
                         <tr>
-                            <For each={row}>{(v) => <td>{v}</td>}</For>
+                            <For each={row}>{(v, colIndex) =>
+                                <td
+                                    onClick={() => batch(() => {
+                                        setSelectedRow(rowIndex());
+                                        setSelectedColumn(colIndex());
+                                    })}
+                                    aria-selected={selectedRow() == rowIndex() && selectedColumn() == colIndex()}>
+                                    {v}
+                                </td>}
+                            </For>
                         </tr>
                     }</For>
                 </tbody>
@@ -66,9 +81,30 @@ export default function RecordBrowser(props: {
         </Match>
     </Switch>;
 
-    return <div>
-        <button onClick={() => refetch()}>Refresh</button>
-        <Show when={data.loading}>&nbsp;<span>Loading...</span></Show>
-        {table}
+    return <div class="flex h-full w-full flex-col items-start p-1">
+        <Show when={props.queryable.canFilter && props.queryable.canSort}>
+            <div class="flex w-full op-bar">
+                <span>WHERE</span>
+                <input
+                    class="flex-1"
+                    value={filterInput() ?? ""}
+                    onInput={(e) => setFilterInput(e.currentTarget.value)}
+                    onKeyDown={e => {
+                        if (e.key == "Enter") {
+                            e.preventDefault();
+                            setFilter(filterInput());
+                        }
+                    }}
+                />
+
+                <span>SORT</span>
+                <input class="flex-1" />
+            </div>
+        </Show>
+        <div class="flex">
+            <button onClick={refetch}>Refresh</button>
+            <Show when={data.loading}>&nbsp;<span>Loading...</span></Show>
+        </div>
+        <div class="w-full grow overflow-scroll">{table}</div>
     </div>
 }

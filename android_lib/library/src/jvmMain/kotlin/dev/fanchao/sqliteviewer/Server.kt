@@ -15,9 +15,17 @@ class EmptyStaticAssetProvider : StaticAssetProvider {
 
 fun main() = runBlocking {
     val driver = BundledSQLiteDriver()
-    val conn = driver.open(":memory:")
-    conn.prepare("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)").use { it.step() }
-    conn.prepare("INSERT INTO test (name) VALUES ('Alice'), ('Bob')").use { it.step() }
+
+    val conn = System.getenv("DB_PATH")
+        ?.takeIf { it.isNotBlank() }
+        ?.let(driver::open)
+        ?: run {
+            println("No database path provided, using in-memory database.")
+            driver.open(":memory:").apply {
+                prepare("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)").use { it.step() }
+                prepare("INSERT INTO test (name) VALUES ('Alice'), ('Bob')").use { it.step() }
+            }
+        }
 
     val instance = startDatabaseViewerServerShared(
         port = 3000,

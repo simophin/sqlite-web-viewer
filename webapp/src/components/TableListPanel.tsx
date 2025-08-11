@@ -1,4 +1,6 @@
-import {createResource, For} from 'solid-js'
+import './TableListPanel.css';
+
+import {createResource, For, Match, Show, Switch} from 'solid-js'
 import {executeSQL} from "../api.ts";
 
 async function fetchTableList() {
@@ -29,23 +31,32 @@ export default function TableListPanel(props: {
     selected: string | null,
     setSelected: (name: string) => void
 }) {
-    const [tablesViews] = createResource(fetchTableList)
+    const [data, { refetch }] = createResource(fetchTableList)
     return (
-        <div class="panel panel-left">
+        <div class="w-full h-full flex flex-col p-1">
             <h2>Tables & Views</h2>
             <div>
-                {tablesViews.loading && <div>Loading...</div>}
-                {tablesViews.error && <div>Error loading tables/views</div>}
-                <ul class="table-list">
-                    <For each={tablesViews()}>{({name, type}) =>
-                        <li
-                            class={`table-list-item${props.selected === name ? '-selected' : ''}`}
-                            onClick={() => props.setSelected(name)}>
-                            {name} <span class="type-label">({type})</span>
-                        </li>
-                    }</For>
-                </ul>
+                <button onClick={refetch}>Reload</button>&nbsp;
+                <Show when={data.loading}>Loading...</Show>
             </div>
+
+                <Switch fallback={<p>Loading...</p>}>
+                    <Match when={data.error}>
+                        <p>Error: {data.error}</p>
+                    </Match>
+
+                    <Match when={!!data()}>
+                        <ul class="grow overflow-y-scroll table-list">
+                            <For each={data()}>{({name, type}) =>
+                                <li
+                                    aria-selected={props.selected == name}
+                                    onClick={() => props.setSelected(name)}>
+                                    {name} <span>({type})</span>
+                                </li>
+                            }</For>
+                        </ul>
+                    </Match>
+                </Switch>
         </div>
     )
 }
