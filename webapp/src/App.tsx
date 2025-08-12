@@ -1,17 +1,18 @@
-import {createSignal} from 'solid-js'
+import { createSignal } from 'solid-js'
 import './App.css'
 import TableListPanel from './components/TableListPanel'
 import MainPanel from './components/MainPanel'
+import { makePersisted } from '@solid-primitives/storage';
 
 function App() {
-    const [selected, setSelected] = createSignal<string | null>(null);
-    const [leftPanelWidth, setLeftPanelWidth] = createSignal(250);
+    const [selected, setSelected] = makePersisted(createSignal<string | null>(null), { name: "selected_table" });
+    const [leftPanelWidth, setLeftPanelWidth] = makePersisted(createSignal(250), { name: "left_panel_width" });
 
     return (
         <div class="flex h-screen w-screen">
 
-            <div style={{width: leftPanelWidth() + 'px'}} class="shrink-0">
-                <TableListPanel selected={selected()} setSelected={setSelected}/>
+            <div style={{ width: leftPanelWidth() + 'px' }} class="shrink-0">
+                <TableListPanel selected={selected()} setSelected={setSelected} />
             </div>
 
             <div
@@ -41,7 +42,7 @@ function App() {
             </div>
 
             <div class="grow h-full overflow-x-hidden">
-                <MainPanel selected={selected()}/>
+                <MainPanel selected={selected()} />
             </div>
         </div>
     )
