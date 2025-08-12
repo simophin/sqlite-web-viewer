@@ -29,7 +29,7 @@ class SqliteQueryable(private val conn: SQLiteConnection) : Queryable {
             .map {
                 conn.prepare(it.sql).use { stmt ->
                     for ((paramIndex, param) in it.params.withIndex()) {
-                        stmt.bindText(paramIndex, param)
+                        stmt.bindText(paramIndex + 1, param)
                     }
 
                     stmt.toQueryResult()

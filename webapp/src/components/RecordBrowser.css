@@ -1,14 +1,12 @@
-
-.data-table {
-
-}
+.data-table {}
 
 .data-table thead {
     background-color: #f0f0f0;
     font-weight: bold;
 }
 
-.data-table td, .data-table th {
+.data-table td,
+.data-table th {
     min-width: 20px;
     max-width: 250px;
     overflow: hidden;
@@ -50,4 +48,16 @@
 
 .op-bar input:focus {
     outline: none;
+}
+
+.column-row {
+    justify-items: center;
+    align-items: center;
+}
+
+.column-row label {
+    font-weight: bold;
+    padding: 4px;
+    margin-right: 8px;
+    background-color: #f0f0f0;
 }

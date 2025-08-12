@@ -23,7 +23,10 @@ function App() {
                     const onMouseMove = (moveEvent: MouseEvent) => {
                         const newWidth = startWidth + (moveEvent.clientX - startX);
                         setLeftPanelWidth(Math.max(100, newWidth)); // Minimum width of 100px
+                        moveEvent.preventDefault();
                     };
+
+                    e.preventDefault();
 
                     const onMouseUp = () => {
                         document.removeEventListener('mousemove', onMouseMove);
