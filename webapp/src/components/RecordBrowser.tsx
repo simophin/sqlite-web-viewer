@@ -105,6 +105,12 @@ export default function RecordBrowser(props: {
             <button onClick={refetch}>Refresh</button>
             <Show when={data.loading}>&nbsp;<span>Loading...</span></Show>
         </div>
-        <div class="w-full grow overflow-scroll">{table}</div>
+        <div class="w-full grow overflow-scroll flex">
+            <div class="overflow-scroll grow h-full">
+                {table}
+            </div>
+
+            <div>Display Panel</div>
+        </div>
     </div>
 }
