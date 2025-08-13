@@ -1,7 +1,7 @@
 import "./RecordBrowser.css";
 
 import type { Pagination, RecordQueryable, Sorting } from "./RecordQueryable.tsx";
-import { createMemo, createResource, createSignal, For, Match, Show, Switch } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal, For, Match, Show, Switch, untrack } from "solid-js";
 import { executeSQL, type Request } from "../api.ts";
 import isEqual from "lodash.isequal";
 import JSONFormatter from "json-formatter-js";
@@ -69,6 +69,20 @@ export default function RecordBrowser(props: {
                 ? columnMetaParser(resp.results[columnMetaIndex].rows)
                 : undefined,
         };
+    });
+
+    createEffect(() => {
+        const d = data();
+        const p = untrack(pagination);
+        if (d && d.countResult && p) {
+            const newPagination = {
+                ...p,
+                offset: Math.min(p.offset, d.countResult),
+            }
+            if (!isEqual(p, newPagination)) {
+                setPagination(newPagination);
+            }
+        }
     });
 
     const selectedCellValue = createMemo(() => {

@@ -1,6 +1,7 @@
 .pagination-bar span {
     border-radius: 4px;
     padding: 6px;
+    cursor: pointer;
 }
 
 .pagination-bar svg {
