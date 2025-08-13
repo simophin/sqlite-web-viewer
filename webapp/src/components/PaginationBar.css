@@ -1,0 +1,23 @@
+.pagination-bar span {
+    border-radius: 4px;
+    padding: 6px;
+}
+
+.pagination-bar svg {
+    width: 18px;
+    height: 18px;
+}
+
+.pagination-bar span:not([aria-disabled="true"]):hover {
+    background-color: #e0e0e0;
+    border-radius: 16px;
+}
+
+.pagination-bar span[aria-disabled="true"] {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.pagination-bar label {
+    font-size: small;
+}

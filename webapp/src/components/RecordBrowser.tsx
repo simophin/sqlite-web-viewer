@@ -5,6 +5,7 @@ import { createMemo, createResource, createSignal, For, Match, Show, Switch } fr
 import { executeSQL, type Request } from "../api.ts";
 import isEqual from "lodash.isequal";
 import JSONFormatter from "json-formatter-js";
+import { PaginationBar } from "./PaginationBar.tsx";
 
 
 export default function RecordBrowser(props: {
@@ -77,9 +78,11 @@ export default function RecordBrowser(props: {
         if (d && cell && cell.row < d.mainResult.rows.length && cell.column < d.mainResult.columns.length) {
             const value = d.mainResult.rows[cell.row][cell.column];
             let jsonDisplayDom;
-            try {
-                jsonDisplayDom = (new JSONFormatter(JSON.parse(value.toString()))).render();
-            } catch (e) {
+            if (typeof value == 'string' && (value.startsWith('{') || value.startsWith('['))) {
+                try {
+                    jsonDisplayDom = (new JSONFormatter(JSON.parse(value.toString()))).render();
+                } catch (e) {
+                }
             }
 
             return {
@@ -144,11 +147,7 @@ export default function RecordBrowser(props: {
                 <input class="flex-1" />
             </div>
         </Show>
-        <div class="flex">
-            <button onClick={refetch}>Refresh</button>
-            <Show when={data.loading}>&nbsp;<span>Loading...</span></Show>
-        </div>
-        <div class="w-full grow overflow-hidden flex relative">
+        <div class="w-full grow overflow-hidden flex relative justify-center">
             <div class={"overflow-scroll grow h-full " + ((showDisplayPanel() && selectedCell()) ? " pr-80" : "")}>
                 {table}
             </div>
@@ -168,6 +167,15 @@ export default function RecordBrowser(props: {
                     fallback={<pre>{selectedCellValue()?.value?.toString()}</pre>}>
                     {selectedCellValue()!.jsonDisplayDom}
                 </Show>
+            </div>
+
+            <div class="absolute bottom-2 bg-gray-200 p-1 rounded-md opacity-80 hover:opacity-100">
+                <PaginationBar
+                    pagination={pagination()}
+                    setPagination={setPagination}
+                    totalItemCount={data()?.countResult}
+                    onRefresh={refetch}
+                />
             </div>
         </div>
     </div>
