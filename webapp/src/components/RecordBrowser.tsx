@@ -10,6 +10,7 @@ import { PaginationBar } from "./PaginationBar.tsx";
 
 export default function RecordBrowser(props: {
     queryable: RecordQueryable,
+    visible: boolean,
 }) {
     const [sorting, setSorting] = createSignal<Sorting | undefined>();
     const [pagination, setPagination] = createSignal<Pagination | undefined>(
@@ -107,15 +108,43 @@ export default function RecordBrowser(props: {
         }
     });
 
+    const onKeyDown = (e: KeyboardEvent) => {
+        const selected = untrack(selectedCell);
+        const d = untrack(data);
+        if (selected && d) {
+            let row = selected.row;
+            let column = selected.column;
+            switch (e.key) {
+                case "ArrowUp": row = Math.max(0, row - 1); break;
+                case "ArrowDown": row = Math.min(d.mainResult.rows.length - 1, row + 1); break;
+                case "ArrowLeft": column = Math.max(0, column - 1); break
+                case "Enter":
+                case "ArrowRight": column = Math.min(d.mainResult.columns.length - 1, column + 1); break;
+                default: return;
+            }
+
+            setSelectedCell({
+                row,
+                column,
+            });
+            e.preventDefault();
+        }
+    };
+
     const table = <Switch fallback={<p>Loading...</p>}>
         <Match when={data.error}>
             <p>Error loading data: {data.error()}</p>
         </Match>
 
         <Match when={!!data()}>
-            <table class="data-table">
-                <thead class="sticky top-0"><For each={data()!.mainResult!.columns}>{(col) => <th
-                    class="p-1">{col.name}</th>}</For></thead>
+            <table class="data-table table table-sm" onKeyDown={onKeyDown}>
+                <thead class="sticky top-0">
+                    <For each={data()!.mainResult!.columns}>{(col) =>
+                        <th><div>
+                            {col.name}
+                        </div></th>}
+                    </For>
+                </thead>
                 <tbody>
                     <For each={data()!.mainResult!.rows}>{(row, rowIndex) =>
                         <tr>
@@ -141,11 +170,12 @@ export default function RecordBrowser(props: {
         </Match>
     </Switch>;
 
-    return <div class="flex h-full w-full flex-col items-start p-1">
+    return <div class={"flex h-full w-full flex-col items-start gap-4 " + (props.visible ? "" : "hidden")}>
         <Show when={props.queryable.canFilter && props.queryable.canSort}>
-            <div class="flex w-full op-bar">
-                <span>WHERE</span>
+            <div class="flex w-full border-2 op-bar">
+                <span class={filterInput() ? "" : "opacity-50"}>WHERE</span>
                 <input
+                    type="text"
                     class="flex-1"
                     value={filterInput() ?? ""}
                     onInput={(e) => setFilterInput(e.currentTarget.value)}
@@ -157,7 +187,7 @@ export default function RecordBrowser(props: {
                     }}
                 />
 
-                <span>SORT</span>
+                <span class={filterInput() ? "" : "opacity-50"}>SORT</span>
                 <input class="flex-1" />
             </div>
         </Show>
@@ -166,9 +196,14 @@ export default function RecordBrowser(props: {
                 {table}
             </div>
 
-            <div class={"p-2 w-80 transform overflow-scroll transition-all duration-300 top-0 right-0 absolute bg-white h-full shadow-lg " + ((showDisplayPanel() && selectedCellValue())
+            <div class={"p-2 w-80 transform overflow-scroll bg-base-200 transition-all duration-300 top-0 right-0 absolute h-full shadow-lg " + ((showDisplayPanel() && selectedCellValue())
                 ? "opacity-100 pointer-events-auto translate-x-0"
                 : "opacity-0 pointer-events-none translate-x-full")}>
+                <div>
+                    <button class="p-1 border-neutral-200 border-2 mb-1" onClick={() => setShowDisplayPanel(false)}>
+                        CLOSE
+                    </button>
+                </div>
                 <For each={selectedCellValue()?.columnMeta ?? []}>{(meta) =>
                     <div class="flex column-row">
                         <label>{"primaryKeyPriority" in meta ? "Primary Key" : meta.label}</label>

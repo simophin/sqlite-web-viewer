@@ -1,9 +1,9 @@
 import './TableListPanel.css';
 
-import {createResource, For, Match, Show, Switch} from 'solid-js'
+import {For} from 'solid-js'
 import {executeSQL} from "../api.ts";
 
-async function fetchTableList() {
+export async function fetchTableList(): Promise<{ name: string, type: 'table' | 'view' }[]> {
     const {
         results: [
             {
@@ -28,35 +28,47 @@ async function fetchTableList() {
 }
 
 export default function TableListPanel(props: {
+    tables: Array<{ name: string, type: 'table' | 'view' }>,
     selected: string | null,
-    setSelected: (name: string) => void
+    setSelected: (name: string) => void,
+    onReload: () => void,
 }) {
-    const [data, { refetch }] = createResource(fetchTableList)
+    const itemsByTypes = () => props.tables.reduce((acc, item) => {
+        const index = acc.findIndex(({type}) => type == item.type);
+        if (index >= 0) {
+            acc[index].items.push(item.name);
+        } else {
+            acc.push({type: item.type, items: [item.name]});
+        }
+        return acc;
+    }, [] as Array<{ type: string, items: [string] }>);
+
     return (
-        <div class="w-full h-full flex flex-col p-1">
-            <h2>Tables & Views</h2>
-            <div>
-                <button onClick={refetch}>Reload</button>&nbsp;
-                <Show when={data.loading}>Loading...</Show>
-            </div>
-
-                <Switch fallback={<p>Loading...</p>}>
-                    <Match when={data.error}>
-                        <p>Error: {data.error}</p>
-                    </Match>
-
-                    <Match when={!!data()}>
-                        <ul class="grow overflow-y-scroll table-list">
-                            <For each={data()}>{({name, type}) =>
-                                <li
-                                    aria-selected={props.selected == name}
-                                    onClick={() => props.setSelected(name)}>
-                                    {name} <span>({type})</span>
-                                </li>
-                            }</For>
-                        </ul>
-                    </Match>
-                </Switch>
-        </div>
+        <ul class="menu bg-base-200 w-full h-full overflow-scroll flex-nowrap">
+            <For each={itemsByTypes()}>{({type, items}) =>
+                <>
+                    <li class="menu-title">{getTitle(type)}</li>
+                    <For each={items}>{(name) =>
+                        <li>
+                            <a href="#"
+                               class={"text-wrap " + (name == props.selected ? "menu-active" : "")}
+                               onClick={() => props.setSelected(name)}>{name}</a>
+                        </li>
+                    }
+                    </For>
+                </>
+            }</For>
+        </ul>
     )
+}
+
+function getTitle(type: string) {
+    switch (type) {
+        case 'table':
+            return 'Tables';
+        case 'view':
+            return 'Views';
+        default:
+           return type;
+    }
 }

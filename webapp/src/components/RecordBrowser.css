@@ -1,49 +1,55 @@
-.data-table {}
+@reference "../style.css";
+
+.data-table {
+    @apply table table-sm;
+}
 
 .data-table thead {
-    background-color: #f0f0f0;
-    font-weight: bold;
+    @apply bg-base-200;
+}
+
+.data-table > thead > th {
+    @apply border-2 border-base-200;
 }
 
 .data-table td,
 .data-table th {
+    @apply border-2 border-base-200;
     min-width: 20px;
     max-width: 250px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
     cursor: default;
-    padding: 6px 8px;
-    border: 1px solid #efefef;
-    font-size: medium;
+    font-size: 14px;
+}
+
+.data-table th div {
+    /*display: flex;*/
+    /*justify-items: start;*/
 }
 
 .data-table td[aria-selected="true"] {
-    background-color: #e0e0e0;
-    color: #000;
+    @apply bg-base-300 border-2 border-base-300;
 }
 
 
 /*  Set hovering background on rows  */
 .data-table tbody tr:hover {
-    background-color: #f0f0f0;
+    @apply bg-base-200;
 }
 
 /* Alternative row colors */
 .data-table tr:nth-child(odd) {
-    background-color: #f9f9f9;
+    @apply bg-base-200/40;
 }
 
 .op-bar {
-    border: 1px solid #efefef;
-    background-clip: border-box;
+    @apply bg-base-200 border-base-200;
 }
 
 .op-bar span {
-    background-color: #f0f0f0;
-    color: #101010;
-    padding: 4px 8px;
-    font-size: medium;
+    @apply font-medium p-2;
 }
 
 .op-bar input:focus {
