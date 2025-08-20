@@ -8,7 +8,7 @@
     @apply bg-base-200;
 }
 
-.data-table > thead > th {
+.data-table>thead>th {
     @apply border-2 border-base-200;
 }
 
@@ -54,16 +54,4 @@
 
 .op-bar input:focus {
     outline: none;
-}
-
-.column-row {
-    justify-items: center;
-    align-items: center;
-}
-
-.column-row label {
-    font-weight: bold;
-    padding: 4px;
-    margin-right: 8px;
-    background-color: #f0f0f0;
 }

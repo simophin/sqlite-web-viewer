@@ -17,7 +17,7 @@ type CountQueryParams = {
     filter?: string;
 }
 
-type ColumnMeta = {
+export type ColumnMeta = {
     "primaryKeyPriority": number;
 } | {
     "label": string;

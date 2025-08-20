@@ -1,3 +1,9 @@
+@reference "../style.css";
+
+.pagination-bar {
+    @apply p-1 bg-base-300/40 hover:bg-base-300/60;
+}
+
 .pagination-bar span {
     border-radius: 4px;
     padding: 6px;
@@ -10,7 +16,7 @@
 }
 
 .pagination-bar span:not([aria-disabled="true"]):hover {
-    background-color: #e0e0e0;
+    @apply bg-base-300/80;
     border-radius: 16px;
 }
 

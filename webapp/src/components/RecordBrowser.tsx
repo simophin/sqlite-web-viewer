@@ -4,8 +4,8 @@ import type { Pagination, RecordQueryable, Sorting } from "./RecordQueryable.tsx
 import { createEffect, createMemo, createResource, createSignal, For, Match, Show, Switch, untrack } from "solid-js";
 import { executeSQL, type Request } from "../api.ts";
 import isEqual from "lodash.isequal";
-import JSONFormatter from "json-formatter-js";
 import { PaginationBar } from "./PaginationBar.tsx";
+import DataViewerPanel from "./DataViewerPanel.tsx";
 
 
 export default function RecordBrowser(props: {
@@ -91,19 +91,9 @@ export default function RecordBrowser(props: {
         const cell = selectedCell();
 
         if (d && cell && cell.row < d.mainResult.rows.length && cell.column < d.mainResult.columns.length) {
-            const value = d.mainResult.rows[cell.row][cell.column];
-            let jsonDisplayDom;
-            if (typeof value == 'string' && (value.startsWith('{') || value.startsWith('['))) {
-                try {
-                    jsonDisplayDom = (new JSONFormatter(JSON.parse(value.toString()))).render();
-                } catch (e) {
-                }
-            }
-
             return {
-                jsonDisplayDom,
                 columnMeta: d.columnMeta?.[d.mainResult.columns[cell.column].name],
-                value,
+                value: d.mainResult.rows[cell.row][cell.column],
             }
         }
     });
@@ -196,29 +186,19 @@ export default function RecordBrowser(props: {
                 {table}
             </div>
 
-            <div class={"p-2 w-80 transform overflow-scroll bg-base-200 transition-all duration-300 top-0 right-0 absolute h-full shadow-lg " + ((showDisplayPanel() && selectedCellValue())
+            <div class={"p-2 w-80 transform overflow-scroll bg-base-100 transition-all duration-300 top-0 right-0 absolute h-full shadow-lg " + ((showDisplayPanel() && selectedCellValue())
                 ? "opacity-100 pointer-events-auto translate-x-0"
                 : "opacity-0 pointer-events-none translate-x-full")}>
-                <div>
-                    <button class="p-1 border-neutral-200 border-2 mb-1" onClick={() => setShowDisplayPanel(false)}>
-                        CLOSE
-                    </button>
-                </div>
-                <For each={selectedCellValue()?.columnMeta ?? []}>{(meta) =>
-                    <div class="flex column-row">
-                        <label>{"primaryKeyPriority" in meta ? "Primary Key" : meta.label}</label>
-                        <span>{"primaryKeyPriority" in meta ? "Yes" : meta.value}</span>
-                    </div>
-                }</For>
-
-                <div class="flex column-row"><label>Value</label></div>
-                <Show when={selectedCellValue()?.jsonDisplayDom}
-                    fallback={<pre>{selectedCellValue()?.value?.toString()}</pre>}>
-                    {selectedCellValue()!.jsonDisplayDom}
+                <Show when={selectedCellValue()}>
+                    <DataViewerPanel
+                        columns={selectedCellValue()!.columnMeta ?? []}
+                        value={selectedCellValue()!.value}
+                        onClose={() => setShowDisplayPanel(false)}
+                    />
                 </Show>
             </div>
 
-            <div class="absolute bottom-2 bg-gray-200 p-1 rounded-md opacity-80 hover:opacity-100">
+            <div class="absolute bottom-2">
                 <PaginationBar
                     pagination={pagination()}
                     setPagination={setPagination}
