@@ -50,6 +50,6 @@ export async function executeSQL(req: Request): Promise<SuccessResponse> {
     if (result.type === "success") {
         return result;
     } else {
-        throw result;
+        throw new Error(result.message, { cause: result["diagnostic"] });
     }
 }
