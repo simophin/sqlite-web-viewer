@@ -1,9 +1,16 @@
-import { createEffect, createSignal } from "solid-js";
-import type { Sorting } from "./RecordQueryable";
+import { createSignal } from "solid-js";
 import "./FilterBar.css";
+import type { Sorting } from "./RecordQueryable";
+import SQLEditor from "./SQLEditor";
+
 
 function parseSortingInput(input: string): Sorting | undefined {
-    return input.trim().split(',')
+    const trimmedInput = input.trim();
+    if (trimmedInput.length === 0) {
+        return;
+    }
+
+    return trimmedInput.split(',')
         .map(part => {
             const [name, dir] = part.trim().split(" ") as [string, string | undefined];
             return { name, desc: dir?.toLowerCase() === 'desc' };
@@ -11,7 +18,7 @@ function parseSortingInput(input: string): Sorting | undefined {
 }
 
 function serializeSortingInput(sorting: Sorting | undefined): string {
-    return (sorting ?? []).map(({ name, desc }) => `${name}${desc ? ' desc' : ''}`).join(", ");
+    return (sorting ?? []).map(({ name, desc }) => `${name}${desc ? ` DESC` : ''}`).join(", ");
 }
 
 export default function FilterBar(props: {
@@ -20,51 +27,31 @@ export default function FilterBar(props: {
     sorting: Sorting | undefined,
     setSorting: (sort: Sorting | undefined) => void;
 }) {
-    const [whereInput, setWhereInput] = createSignal("");
     const [whereHasFocus, setWhereHasFocus] = createSignal(false);
-
-    const [filterInput, setFilterInput] = createSignal("");
-    const [filterHasFocus, setFilterHasFocus] = createSignal(false);
-
-    createEffect(() => {
-        setWhereInput(props.where ?? "");
-    });
-
-    createEffect(() => {
-        setFilterInput(serializeSortingInput(props.sorting));
-    });
+    const [sortingHasFocus, setSortingHasFocus] = createSignal(false);
 
     return <div class="flex w-full border-2 op-bar">
-        <span class={(whereInput() || whereHasFocus()) ? "" : "opacity-50"}>WHERE</span>
-        <input
-            type="text"
-            class="flex-1"
-            onFocus={() => setWhereHasFocus(true)}
-            onBlur={() => setWhereHasFocus(false)}
-            value={whereInput() ?? ""}
-            onInput={(e) => setWhereInput(e.currentTarget.value)}
-            onKeyDown={e => {
-                if (e.key == "Enter") {
-                    e.preventDefault();
-                    props.setWhere(whereInput());
-                }
-            }}
-        />
+        <span class={(whereHasFocus() || !!props.where) ? "" : "opacity-50"}>WHERE</span>
+        <div class="op-bar-input">
+            <SQLEditor
+                onFocus={() => setWhereHasFocus(true)}
+                onBlur={() => setWhereHasFocus(false)}
+                value={props.where}
+                singleLine
+                onSubmit={props.setWhere} />
+        </div>
 
-        <span class={(props.sorting || filterHasFocus()) ? "" : "opacity-50"}>SORT</span>
-        <input
-            type="text"
-            class="flex-1"
-            onFocus={() => setFilterHasFocus(true)}
-            onBlur={() => setFilterHasFocus(false)}
-            value={filterInput() ?? ""}
-            onInput={(e) => setFilterInput(e.currentTarget.value)}
-            onKeyDown={e => {
-                if (e.key == "Enter") {
-                    e.preventDefault();
-                    props.setSorting(parseSortingInput(filterInput()));
-                }
-            }}
-        />
+        <span class={(sortingHasFocus() || (props.sorting && props.sorting.length > 0)) ? "" : "opacity-50"}>ORDER BY</span>
+        <div class="op-bar-input">
+            <SQLEditor
+                onFocus={() => setSortingHasFocus(true)}
+                onBlur={() => setSortingHasFocus(false)}
+                value={serializeSortingInput(props.sorting)}
+                singleLine
+                onSubmit={(value) => {
+                    const sorting = parseSortingInput(value);
+                    props.setSorting(sorting);
+                }} />
+        </div>
     </div>;
 }

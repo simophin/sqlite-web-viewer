@@ -1,16 +1,16 @@
 import "./RecordBrowser.css";
 
-import type {Pagination, RecordQueryable, Sorting} from "./RecordQueryable.tsx";
-import {createEffect, createMemo, createResource, createSignal, For, Show, untrack} from "solid-js";
-import {executeSQL, type Request} from "../api.ts";
-import {PaginationBar} from "./PaginationBar.tsx";
+import type { Pagination, RecordQueryable, Sorting } from "./RecordQueryable.tsx";
+import { createEffect, createMemo, createResource, createSignal, For, Show, untrack } from "solid-js";
+import { executeSQL, type Request } from "../api.ts";
+import { PaginationBar } from "./PaginationBar.tsx";
 import DataViewerPanel from "./DataViewerPanel.tsx";
 import FilterBar from "./FilterBar.tsx";
 
 function createRequest(queryable: RecordQueryable,
-                       sorting: Sorting | undefined,
-                       filter: string | undefined,
-                       pagination: Pagination | undefined) {
+    sorting: Sorting | undefined,
+    filter: string | undefined,
+    pagination: Pagination | undefined) {
     const queries = [];
 
     const mainQueryIndex = queries.length;
@@ -38,7 +38,7 @@ function createRequest(queryable: RecordQueryable,
     }
 
     return {
-        request: {queries} as Request,
+        request: { queries } as Request,
         mainQueryIndex,
         countQueryIndex,
         columnMetaIndex,
@@ -53,14 +53,14 @@ export default function RecordBrowser(props: {
 }) {
     const [sorting, setSorting] = createSignal<Sorting | undefined>();
     const [pagination, setPagination] = createSignal<Pagination | undefined>(
-        props.queryable.canPaginate ? {offset: 0, limit: 100} : undefined
+        props.queryable.canPaginate ? { offset: 0, limit: 100 } : undefined
     )
     const [filter, setFilter] = createSignal<string | undefined>();
 
     const [selectedCell, setSelectedCell] = createSignal<{ row: number; column: number } | undefined>();
     const [showDisplayPanel, setShowDisplayPanel] = createSignal(false);
 
-    const [data, {refetch}] = createResource(() => createRequest(
+    const [data, { refetch }] = createResource(() => createRequest(
         props.queryable,
         sorting(),
         filter(),
@@ -102,7 +102,7 @@ export default function RecordBrowser(props: {
                 {"cause" in e &&
                     <div class="collapse-content text-sm overflow-y-scroll">
                         <pre>{e.cause}</pre>
-                   </div>
+                    </div>
                 }
             </div>
         }
@@ -170,40 +170,40 @@ export default function RecordBrowser(props: {
     const table = <Show when={!!lastSuccessResult()}>
         <table class="data-table table table-sm" onKeyDown={onKeyDown}>
             <thead class="sticky top-0">
-            <For each={lastSuccessResult()!.mainResult.columns}>{(col) =>
-                <th>
-                    <div>
-                        {col.name}
-                    </div>
-                </th>}
-            </For>
+                <For each={lastSuccessResult()!.mainResult.columns}>{(col) =>
+                    <th>
+                        <div>
+                            {col.name}
+                        </div>
+                    </th>}
+                </For>
             </thead>
             <tbody>
-            <For each={lastSuccessResult()!.mainResult.rows}>{(row, rowIndex) =>
-                <tr>
-                    <For each={row}>{(v, colIndex) =>
-                        <td
-                            onClick={() => {
-                                if (selectedCell()?.row == rowIndex() && selectedCell()?.column == colIndex()) {
-                                    setShowDisplayPanel(!showDisplayPanel());
-                                } else {
-                                    setSelectedCell({row: rowIndex(), column: colIndex()});
-                                    setShowDisplayPanel(true);
-                                }
-                            }}
-                            aria-selected={selectedCell()?.row == rowIndex() && selectedCell()?.column == colIndex()}>
-                            {v}
-                        </td>}
-                    </For>
-                </tr>
-            }</For>
+                <For each={lastSuccessResult()!.mainResult.rows}>{(row, rowIndex) =>
+                    <tr>
+                        <For each={row}>{(v, colIndex) =>
+                            <td
+                                onClick={() => {
+                                    if (selectedCell()?.row == rowIndex() && selectedCell()?.column == colIndex()) {
+                                        setShowDisplayPanel(!showDisplayPanel());
+                                    } else {
+                                        setSelectedCell({ row: rowIndex(), column: colIndex() });
+                                        setShowDisplayPanel(true);
+                                    }
+                                }}
+                                aria-selected={selectedCell()?.row == rowIndex() && selectedCell()?.column == colIndex()}>
+                                {v}
+                            </td>}
+                        </For>
+                    </tr>
+                }</For>
             </tbody>
         </table>
     </Show>;
 
     return <div class={"flex h-full w-full flex-col items-start gap-4 " + (props.visible ? "" : "hidden")}>
         <Show when={props.queryable.canFilter && props.queryable.canSort}>
-            <FilterBar setSorting={setSorting} sorting={sorting()} setWhere={setFilter} where={filter()}/>
+            <FilterBar setSorting={setSorting} sorting={sorting()} setWhere={setFilter} where={filter()} />
         </Show>
 
         <Show when={errorElements()}>

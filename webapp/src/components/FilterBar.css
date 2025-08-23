@@ -4,10 +4,10 @@
     @apply bg-base-200 border-base-200;
 }
 
-.op-bar span {
+.op-bar>span {
     @apply font-medium p-2;
 }
 
-.op-bar input:focus {
-    outline: none;
+.op-bar-input {
+    @apply flex-1 flex items-center overflow-x-scroll;
 }

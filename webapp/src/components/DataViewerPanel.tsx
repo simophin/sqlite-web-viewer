@@ -23,7 +23,7 @@ export default function DataViewerPanel(
     return (
         <div class="w-full overflow-y-scroll">
             <div>
-                <button class="p-1 border-neutral-200 border-2 mb-1" onClick={props.onClose}>
+                <button class="btn btn-neutral" onClick={props.onClose}>
                     CLOSE
                 </button>
             </div>

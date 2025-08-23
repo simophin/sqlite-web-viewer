@@ -49,10 +49,10 @@ export function tableRecordQueryable(
                 sql += ` WHERE ${filter}`;
             }
 
-            if (sorting) {
+            if (sorting && sorting.length > 0) {
                 sql += ' ORDER BY ' +
                     sorting.map(({ name, desc }) =>
-                        `${name}${desc ? 'DESC' : ''}`)
+                        `${name}${desc ? ' DESC' : ''}`)
                         .join(', ');
             }
 
@@ -70,10 +70,10 @@ export function tableRecordQueryable(
                 sql += ` WHERE ${filter}`;
             }
 
-            if (sorting) {
+            if (sorting && sorting.length > 0) {
                 sql += ' ORDER BY ' +
                     sorting.map(({ name, desc }) =>
-                        `${name}${desc ? 'DESC' : ''}`)
+                        `${name}${desc ? ' DESC' : ''}`)
                         .join(', ');
             }
 
