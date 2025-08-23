@@ -1,7 +1,6 @@
-
-
 package dev.fanchao.sqliteviewer
 
+import dev.fanchao.sqliteviewer.model.QueryResults
 import dev.fanchao.sqliteviewer.model.Queryable
 import dev.fanchao.sqliteviewer.model.Request
 import io.ktor.http.ContentType
@@ -35,7 +34,7 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @OptIn(ExperimentalAtomicApi::class, DelicateCoroutinesApi::class)
-class StartedInstance (
+class StartedInstance(
     private val server: EmbeddedServer<*, *>
 ) {
     sealed interface State {
@@ -93,7 +92,10 @@ fun startDatabaseViewerServerShared(
     return StartedInstance(server)
 }
 
-private fun Application.configureDatabaseViewerRouting(queryable: Queryable, assetProvider: StaticAssetProvider) {
+private fun Application.configureDatabaseViewerRouting(
+    queryable: Queryable,
+    assetProvider: StaticAssetProvider
+) {
     install(ContentNegotiation) { json() }
     install(CORS) {
         anyHost()
@@ -107,10 +109,18 @@ private fun Application.configureDatabaseViewerRouting(queryable: Queryable, ass
         post("/query") {
             val req = call.receive<Request>()
             val dbVersion = queryable.dbVersion
-            val results = queryable.runInTransaction(req.queries
-                .asSequence()
-                .map { it.getQuery(dbVersion) }
-            )
+            val results = runCatching {
+                queryable.runInTransaction(
+                    req.queries
+                        .asSequence()
+                        .map { it.getQuery(dbVersion) }
+                )
+            }.getOrElse { err ->
+                QueryResults.Error(
+                    message = err.message.orEmpty(),
+                    diagnostic = err.stackTraceToString(),
+                )
+            }
             call.respond(results)
         }
 

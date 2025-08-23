@@ -39,7 +39,7 @@ class SqliteQueryable(private val conn: SQLiteConnection) : Queryable {
 
         val end = System.currentTimeMillis()
 
-        return QueryResults(
+        return QueryResults.Success(
             executionTimeUs = (end - start) * 1000, // Convert ms to us
             results = results
         )

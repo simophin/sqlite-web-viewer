@@ -6,6 +6,7 @@ import { executeSQL, type Request } from "../api.ts";
 import isEqual from "lodash.isequal";
 import { PaginationBar } from "./PaginationBar.tsx";
 import DataViewerPanel from "./DataViewerPanel.tsx";
+import FilterBar from "./FilterBar.tsx";
 
 
 export default function RecordBrowser(props: {
@@ -17,7 +18,6 @@ export default function RecordBrowser(props: {
         props.queryable.canPaginate ? { offset: 0, limit: 100 } : undefined
     )
     const [filter, setFilter] = createSignal<string | undefined>();
-    const [filterInput, setFilterInput] = createSignal<string | undefined>(filter());
 
     const [selectedCell, setSelectedCell] = createSignal<{ row: number; column: number } | undefined>();
     const [showDisplayPanel, setShowDisplayPanel] = createSignal(false);
@@ -72,8 +72,18 @@ export default function RecordBrowser(props: {
         };
     });
 
+    const errorElements = createMemo(() => {
+        const e = data.error;
+        if (typeof e == "object" && "message" in e) {
+            return <>
+                <p>Error loading data: {e.message}</p>
+                {"diagnostic" in e && <pre>{e.diagnostic}</pre>}
+            </>
+        }
+    });
+
     createEffect(() => {
-        const d = data();
+        const d = data.latest;
         const p = untrack(pagination);
         if (d && d.countResult && p) {
             const newPagination = {
@@ -87,7 +97,7 @@ export default function RecordBrowser(props: {
     });
 
     const selectedCellValue = createMemo(() => {
-        const d = data();
+        const d = data.latest;
         const cell = selectedCell();
 
         if (d && cell && cell.row < d.mainResult.rows.length && cell.column < d.mainResult.columns.length) {
@@ -99,8 +109,8 @@ export default function RecordBrowser(props: {
     });
 
     const onKeyDown = (e: KeyboardEvent) => {
-        const selected = untrack(selectedCell);
-        const d = untrack(data);
+        const selected = selectedCell();
+        const d = data.latest;
         if (selected && d) {
             let row = selected.row;
             let column = selected.column;
@@ -122,21 +132,21 @@ export default function RecordBrowser(props: {
     };
 
     const table = <Switch fallback={<p>Loading...</p>}>
-        <Match when={data.error}>
-            <p>Error loading data: {data.error()}</p>
+        <Match when={errorElements()}>
+            {errorElements()}
         </Match>
 
-        <Match when={!!data()}>
+        <Match when={!!data.latest}>
             <table class="data-table table table-sm" onKeyDown={onKeyDown}>
                 <thead class="sticky top-0">
-                    <For each={data()!.mainResult!.columns}>{(col) =>
+                    <For each={data.latest!.mainResult.columns}>{(col) =>
                         <th><div>
                             {col.name}
                         </div></th>}
                     </For>
                 </thead>
                 <tbody>
-                    <For each={data()!.mainResult!.rows}>{(row, rowIndex) =>
+                    <For each={data.latest!.mainResult.rows}>{(row, rowIndex) =>
                         <tr>
                             <For each={row}>{(v, colIndex) =>
                                 <td
@@ -162,24 +172,7 @@ export default function RecordBrowser(props: {
 
     return <div class={"flex h-full w-full flex-col items-start gap-4 " + (props.visible ? "" : "hidden")}>
         <Show when={props.queryable.canFilter && props.queryable.canSort}>
-            <div class="flex w-full border-2 op-bar">
-                <span class={filterInput() ? "" : "opacity-50"}>WHERE</span>
-                <input
-                    type="text"
-                    class="flex-1"
-                    value={filterInput() ?? ""}
-                    onInput={(e) => setFilterInput(e.currentTarget.value)}
-                    onKeyDown={e => {
-                        if (e.key == "Enter") {
-                            e.preventDefault();
-                            setFilter(filterInput());
-                        }
-                    }}
-                />
-
-                <span class={filterInput() ? "" : "opacity-50"}>SORT</span>
-                <input class="flex-1" />
-            </div>
+            <FilterBar setSorting={setSorting} sorting={sorting()} setWhere={setFilter} where={filter()} />
         </Show>
         <div class="w-full grow overflow-hidden flex relative justify-center">
             <div class={"overflow-scroll grow h-full " + ((showDisplayPanel() && selectedCell()) ? " pr-80" : "")}>
@@ -202,7 +195,7 @@ export default function RecordBrowser(props: {
                 <PaginationBar
                     pagination={pagination()}
                     setPagination={setPagination}
-                    totalItemCount={data()?.countResult}
+                    totalItemCount={data.latest?.countResult}
                     onRefresh={refetch}
                 />
             </div>

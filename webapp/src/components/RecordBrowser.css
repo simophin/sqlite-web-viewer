@@ -44,14 +44,3 @@
     @apply bg-base-200/40;
 }
 
-.op-bar {
-    @apply bg-base-200 border-base-200;
-}
-
-.op-bar span {
-    @apply font-medium p-2;
-}
-
-.op-bar input:focus {
-    outline: none;
-}

@@ -28,7 +28,7 @@ class SupportQueryable(private val db: SupportSQLiteDatabase) : Queryable {
                 .toList()
 
             db.setTransactionSuccessful()
-            QueryResults(
+            QueryResults.Success(
                 executionTimeUs = (SystemClock.elapsedRealtimeNanos() - start) / 1000L,
                 results = results
             )
