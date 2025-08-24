@@ -98,7 +98,7 @@ export function tableRecordQueryable(
                     const primaryKeyMetas: ColumnMeta[] = [];
 
                     if (pk > 0) {
-                        primaryKeyMetas.push({ label: "Primary key", value: "Yes" });
+                        primaryKeyMetas.push({ primaryKeyPriority: pk });
                     }
 
                     return {

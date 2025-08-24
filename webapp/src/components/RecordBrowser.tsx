@@ -6,6 +6,7 @@ import { executeSQL, type Request } from "../api.ts";
 import { PaginationBar } from "./PaginationBar.tsx";
 import DataViewerPanel from "./DataViewerPanel.tsx";
 import FilterBar from "./FilterBar.tsx";
+import ColumnHeader from "./ColumnHeader.tsx";
 
 function createRequest(queryable: RecordQueryable,
     sorting: Sorting | undefined,
@@ -75,14 +76,28 @@ export default function RecordBrowser(props: {
         } = r;
         const resp = await executeSQL(request);
 
+        const columnMeta = (typeof columnMetaIndex == "number" && columnMetaParser)
+            ? columnMetaParser(resp.results[columnMetaIndex].rows)
+            : undefined;
+
+        const primaryKeys: string[] = [];
+        if (columnMeta) {
+            for (const [col, metas] of Object.entries(columnMeta)) {
+                for (const m of metas) {
+                    if ("primaryKeyPriority" in m) {
+                        primaryKeys[m.primaryKeyPriority - 1] = col;
+                    }
+                }
+            }
+        }
+
         return {
             mainResult: resp.results[mainQueryIndex],
             countResult: typeof countQueryIndex == "number"
                 ? (resp.results[countQueryIndex].rows[0][0] as number)
                 : undefined,
-            columnMeta: (typeof columnMetaIndex == "number" && columnMetaParser)
-                ? columnMetaParser(resp.results[columnMetaIndex].rows)
-                : undefined,
+            columnMeta,
+            primaryKeys,
         };
     });
 
@@ -171,11 +186,12 @@ export default function RecordBrowser(props: {
         <table class="data-table table table-sm" onKeyDown={onKeyDown}>
             <thead class="sticky top-0">
                 <For each={lastSuccessResult()!.mainResult.columns}>{(col) =>
-                    <th>
-                        <div>
-                            {col.name}
-                        </div>
-                    </th>}
+                    <th><ColumnHeader
+                        columnName={col.name}
+                        canSort={props.queryable.canSort}
+                        sorting={sorting()}
+                        onSortingChange={setSorting}
+                        primaryKeys={lastSuccessResult()!.primaryKeys} /></th>}
                 </For>
             </thead>
             <tbody>

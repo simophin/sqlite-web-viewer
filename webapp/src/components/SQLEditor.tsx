@@ -2,7 +2,7 @@ import { SQLite } from "@codemirror/lang-sql";
 import { defaultHighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { createEffect } from "solid-js";
+import { createEffect, createMemo, onCleanup } from "solid-js";
 
 export default function SQLEditor(props: {
     value?: string;
@@ -10,51 +10,68 @@ export default function SQLEditor(props: {
     singleLine?: boolean;
     onFocus?: () => void;
     onBlur?: () => void;
+    onValueChanged: (value: string) => void;
 }) {
-    const editorView = new EditorView({
-        doc: "hello",
-        extensions: [
-            SQLite,
-            EditorView.editorAttributes.of({
-                class: "w-full text-medium"
-            }),
-            EditorView.theme({
-                ".cm-content": {
-                    fontSize: "1rem"
-                }
-            }),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-            ...(
-                props.singleLine ? [
-                    EditorState.transactionFilter.of(tr => {
-                        return tr.newDoc.lines > 1 ? [] : [tr]
-                    })
-                ] : []
-            ),
-            EditorView.domEventHandlers({
-                keydown(event, view) {
-                    if ((props.singleLine && event.key === "Enter")) {
-                        event.preventDefault();
-                        props.onSubmit(view.state.doc.toString());
-                    }
-                },
+    const editorView = createMemo<EditorView, EditorView>((prevView) => {
+        prevView?.destroy();
 
-                focus: () => props.onFocus?.(),
-                blur: () => props.onBlur?.(),
-            }),
-        ]
+        return new EditorView({
+            doc: "hello",
+            extensions: [
+                SQLite,
+                EditorView.editorAttributes.of({
+                    class: "w-full text-medium"
+                }),
+                EditorView.theme({
+                    ".cm-content": {
+                        fontSize: "1rem"
+                    }
+                }),
+                syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+                ...(
+                    props.singleLine ? [
+                        EditorState.transactionFilter.of(tr => {
+                            return tr.newDoc.lines > 1 ? [] : [tr]
+                        })
+                    ] : []
+                ),
+                EditorView.domEventHandlers({
+                    keydown(event, view) {
+                        if ((props.singleLine && event.key === "Enter")) {
+                            event.preventDefault();
+                            if (event.target && event.target instanceof HTMLElement) {
+                                event.target.blur();
+                            }
+
+                            props.onSubmit(view.state.doc.toString());
+                        }
+                    },
+
+                    focus: () => props.onFocus?.(),
+                    blur: () => props.onBlur?.(),
+                }),
+                EditorView.updateListener.of(update => {
+                    if (update.docChanged) {
+                        props.onValueChanged?.(update.state.doc.toString());
+                    }
+                }),
+            ]
+        });
     });
 
     createEffect(() => {
-        editorView.dispatch({
+        editorView().dispatch({
             changes: {
                 from: 0,
-                to: editorView.state.doc.length,
+                to: editorView().state.doc.length,
                 insert: props.value ?? ''
             }
         });
     });
 
+    onCleanup(() => {
+        editorView().destroy();
+    });
 
-    return editorView.dom;
+    return <>{editorView().dom}</>;
 }

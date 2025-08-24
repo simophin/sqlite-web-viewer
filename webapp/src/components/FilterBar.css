@@ -4,9 +4,14 @@
     @apply bg-base-200 border-base-200;
 }
 
-.op-bar>span {
+.op-bar>label {
     @apply font-medium p-2;
 }
+
+.op-bar>span[role="button"] {
+    @apply btn btn-circle btn-sm btn-ghost;
+}
+
 
 .op-bar-input {
     @apply flex-1 flex items-center overflow-x-scroll;
