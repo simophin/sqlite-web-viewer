@@ -20,14 +20,14 @@ export default function ColumnHeader(props: {
         const icons = [<span><FaSolidKey class="w-3 h-3" /></span>];
 
         if (props.primaryKeys.length > 1) {
-            icons.push(<label class="text-xs">{index + 1}</label>)
+            icons.push(<sup class="text-xs">{index + 1}</sup>)
         }
 
         return icons;
     });
 
     const sortIcons = createMemo(() => {
-        if (!props.canSort) return [];
+        if (!props.canSort) return;
 
         const sortIndex = props.sorting?.findIndex(s => s.name === props.columnName) ?? -1;
         let icon;
@@ -36,36 +36,32 @@ export default function ColumnHeader(props: {
         else if (props.sorting![sortIndex].desc) icon = FaSolidArrowDown91;
         else icon = FaSolidArrowUp19;
 
-        const icons = [
-            <span class="btn btn-xs btn-circle btn-ghost" onClick={() => {
-                if (sortIndex < 0) {
-                    props.onSortingChange?.([
-                        ...(props.sorting ?? []),
-                        { name: props.columnName }
-                    ]);
-                } else if (props.sorting![sortIndex].desc) {
-                    props.onSortingChange?.([
-                        ...props.sorting!.slice(0, sortIndex),
-                        ...props.sorting!.slice(sortIndex + 1)
-                    ]);
-                } else {
-                    const newSorting = [...props.sorting!];
-                    newSorting[sortIndex].desc = !props.sorting![sortIndex].desc;
-                    props.onSortingChange?.(newSorting);
-                }
-            }}>
-                <Dynamic component={icon} class="w-3 h-3" />
-            </span>
-        ]
+        return <span class="btn btn-xs btn-square btn-ghost" onClick={() => {
+            if (sortIndex < 0) {
+                props.onSortingChange?.([
+                    ...(props.sorting ?? []),
+                    { name: props.columnName }
+                ]);
+            } else if (props.sorting![sortIndex].desc) {
+                props.onSortingChange?.([
+                    ...props.sorting!.slice(0, sortIndex),
+                    ...props.sorting!.slice(sortIndex + 1)
+                ]);
+            } else {
+                const newSorting = [...props.sorting!];
+                newSorting[sortIndex].desc = !props.sorting![sortIndex].desc;
+                props.onSortingChange?.(newSorting);
+            }
+        }}>
+            <Dynamic component={icon} class="w-3 h-3" />
 
-        if (props.sorting && props.sorting.length > 1 && sortIndex >= 0) {
-            icons.push(<label class="text-xs">{sortIndex + 1}</label>)
-        }
-
-        return icons;
+            {props.sorting && props.sorting.length > 1 && sortIndex >= 0 && (
+                <sup class="text-xs">{sortIndex + 1}</sup>
+            )}
+        </span>;
     });
 
-    return <div class="flex items-center gap-2 w-full h-full">
+    return <div class="flex items-center gap-1 w-full h-full">
         {primaryIcons()}
         <label class="font-medium grow">{props.columnName}</label>
         {sortIcons()}
