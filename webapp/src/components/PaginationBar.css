@@ -4,25 +4,12 @@
     @apply p-1 bg-base-300/40 hover:bg-base-300/60;
 }
 
-.pagination-bar span {
-    border-radius: 4px;
-    padding: 6px;
-    cursor: pointer;
+.pagination-bar span[role="button"] {
+    @apply btn btn-xs btn-circle btn-ghost;
 }
 
-.pagination-bar svg {
-    width: 18px;
-    height: 18px;
-}
-
-.pagination-bar span:not([aria-disabled="true"]):hover {
-    @apply bg-base-300/80;
-    border-radius: 16px;
-}
-
-.pagination-bar span[aria-disabled="true"] {
-    opacity: 0.5;
-    pointer-events: none;
+.pagination-bar span[role="button"]>* {
+    @apply w-4 h-4;
 }
 
 .pagination-bar label {

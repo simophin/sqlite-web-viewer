@@ -5,13 +5,12 @@
 }
 
 .op-bar>label {
-    @apply font-medium p-2;
+    @apply font-medium p-2 text-sm select-none;
 }
 
 .op-bar>span[role="button"] {
     @apply btn btn-circle btn-sm btn-ghost;
 }
-
 
 .op-bar-input {
     @apply flex-1 flex items-center overflow-x-scroll;

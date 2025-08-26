@@ -1,12 +1,14 @@
 import './PaginationBar.css';
 import { FaSolidAngleLeft, FaSolidAngleRight, FaSolidRotateRight } from "solid-icons/fa";
 import type { Pagination } from "./RecordQueryable";
+import { Show } from 'solid-js';
 
 export function PaginationBar(props: {
     pagination?: Pagination,
     setPagination?: (pagination: Pagination) => void,
     totalItemCount?: number,
     onRefresh: () => void,
+    refreshing: boolean
 }) {
     const hasPreviousPage = () => {
         return props.pagination && props.pagination.offset > 0;
@@ -27,13 +29,19 @@ export function PaginationBar(props: {
     };
 
     return <div class="flex pagination-bar items-center gap-1">
-        <span>
-            <FaSolidRotateRight
-                aria-label="Refresh"
-                onclick={props.onRefresh} />
-        </span>
+        <Show when={!props.refreshing}>
+            <span role="button">
+                <FaSolidRotateRight
+                    aria-label="Refresh"
+                    onclick={props.onRefresh} />
 
-        <span aria-disabled={!hasPreviousPage()}>
+            </span>
+        </Show>
+        <Show when={props.refreshing}>
+            <span class="loading loading-dots loading-xs m-1"></span>
+        </Show>
+
+        <span aria-disabled={!hasPreviousPage()} role="button">
             <FaSolidAngleLeft
                 onclick={() => {
                     if (hasPreviousPage()) {
@@ -47,7 +55,7 @@ export function PaginationBar(props: {
 
         {rangeLabel()}
 
-        <span>
+        <span role="button">
             <FaSolidAngleRight
                 aria-label="Next Page"
                 onclick={() => {

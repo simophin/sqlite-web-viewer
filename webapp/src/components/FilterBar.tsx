@@ -1,4 +1,4 @@
-import { createEffect, createSignal } from "solid-js";
+import { createSignal } from "solid-js";
 import "./FilterBar.css";
 import type { Sorting } from "./RecordQueryable";
 import SQLEditor from "./SQLEditor";
@@ -31,63 +31,53 @@ export default function FilterBar(props: {
     const [whereHasFocus, setWhereHasFocus] = createSignal(false);
     const [sortingHasFocus, setSortingHasFocus] = createSignal(false);
 
-    const [whereInput, setWhereInput] = createSignal(props.where);
-    const [sortingInput, setSortingInput] = createSignal(serializeSortingInput(props.sorting));
+    const [hasWhereInput, setHasWhereInput] = createSignal(!!props.where);
+    const [clearWhere, setClearWhere] = createSignal(0);
+    const [hasSortingInput, setHasSortingInput] = createSignal(props.sorting && props.sorting.length > 0);
+    const [clearSorting, setClearSorting] = createSignal(0);
 
-    createEffect(() => {
-        setWhereInput(props.where);
-    });
-
-    createEffect(() => {
-        setSortingInput(serializeSortingInput(props.sorting));
-    });
-
-    return <div class="flex w-full border-2 op-bar items-center">
-        <label class={(whereHasFocus() || !!props.where) ? "" : "opacity-50"}>WHERE</label>
+    return <div class="flex w-full border op-bar items-center">
+        <label class={(whereHasFocus() || hasWhereInput()) ? "" : "opacity-50"}>WHERE</label>
         <div class="op-bar-input">
             <SQLEditor
                 onFocus={() => setWhereHasFocus(true)}
                 onBlur={() => setWhereHasFocus(false)}
-                value={whereInput()}
-                onValueChanged={setWhereInput}
+                value={props.where ?? ''}
+                onEditingValueChanged={input => setHasWhereInput(!!input)}
                 singleLine
-                onSubmit={() => props.setWhere(whereInput())} />
+                clearSignal={clearWhere}
+                onSubmit={props.setWhere} />
         </div>
 
         <span role="button"
             style={{
-                visibility: whereInput() ? "visible" : "hidden"
+                visibility: hasWhereInput() ? "visible" : "hidden"
             }}
-            onclick={() => {
-                setWhereInput('');
-                props.setWhere(undefined);
-            }}>
+            onclick={() => setClearWhere(c => c + 1)}>
             <FaSolidXmark />
         </span>
 
 
-        <label class={(sortingHasFocus() || (props.sorting && props.sorting.length > 0)) ? "" : "opacity-50"}>ORDER BY</label>
+        <label class={(sortingHasFocus() || hasSortingInput()) ? "" : "opacity-50"}>ORDER BY</label>
         <div class="op-bar-input">
             <SQLEditor
                 onFocus={() => setSortingHasFocus(true)}
                 onBlur={() => setSortingHasFocus(false)}
-                value={sortingInput()}
+                value={serializeSortingInput(props.sorting)}
                 singleLine
+                clearSignal={clearSorting}
                 onSubmit={(value) => {
                     const sorting = parseSortingInput(value);
                     props.setSorting(sorting);
                 }}
-                onValueChanged={setSortingInput} />
+                onEditingValueChanged={input => setHasSortingInput(!!input)} />
         </div>
 
         <span role="button"
             style={{
-                visibility: sortingInput() ? "visible" : "hidden"
+                visibility: hasSortingInput() ? "visible" : "hidden"
             }}
-            onclick={() => {
-                setSortingInput('');
-                props.setSorting(undefined);
-            }}>
+            onclick={() => setClearSorting(c => c + 1)}>
             <FaSolidXmark />
         </span>
     </div>;

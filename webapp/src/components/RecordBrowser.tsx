@@ -112,13 +112,8 @@ export default function RecordBrowser(props: {
     const errorElements = createMemo(() => {
         const e = data.error;
         if (typeof e == "object" && "message" in e) {
-            return <div tabindex="0" class="collapse collapse-plus bg-base-100 border-base-300 border">
-                <div class="collapse-title text-error text-sm">{e.message}</div>
-                {"cause" in e &&
-                    <div class="collapse-content text-sm overflow-y-scroll">
-                        <pre>{e.cause}</pre>
-                    </div>
-                }
+            return <div role="alert" class="alert alert-soft alert-error">
+                <span>{e.message}</span>
             </div>
         }
     });
@@ -150,40 +145,9 @@ export default function RecordBrowser(props: {
         }
     });
 
-    const onKeyDown = (e: KeyboardEvent) => {
-        const selected = selectedCell();
-        const d = lastSuccessResult();
-        if (selected && d) {
-            let row = selected.row;
-            let column = selected.column;
-            switch (e.key) {
-                case "ArrowUp":
-                    row = Math.max(0, row - 1);
-                    break;
-                case "ArrowDown":
-                    row = Math.min(d.mainResult.rows.length - 1, row + 1);
-                    break;
-                case "ArrowLeft":
-                    column = Math.max(0, column - 1);
-                    break
-                case "Enter":
-                case "ArrowRight":
-                    column = Math.min(d.mainResult.columns.length - 1, column + 1);
-                    break;
-                default:
-                    return;
-            }
-
-            setSelectedCell({
-                row,
-                column,
-            });
-            e.preventDefault();
-        }
-    };
 
     const table = <Show when={!!lastSuccessResult()}>
-        <table class="data-table table table-sm" onKeyDown={onKeyDown}>
+        <table class="data-table table table-sm">
             <thead class="sticky top-0">
                 <For each={lastSuccessResult()!.mainResult.columns}>{(col) =>
                     <th><ColumnHeader
@@ -217,7 +181,7 @@ export default function RecordBrowser(props: {
         </table>
     </Show>;
 
-    return <div class={"flex h-full w-full flex-col items-start gap-4 " + (props.visible ? "" : "hidden")}>
+    return <div class={"flex h-full w-full flex-col items-start gap-1 " + (props.visible ? "" : "hidden")}>
         <Show when={props.queryable.canFilter && props.queryable.canSort}>
             <FilterBar setSorting={setSorting} sorting={sorting()} setWhere={setFilter} where={filter()} />
         </Show>
@@ -250,6 +214,7 @@ export default function RecordBrowser(props: {
                     setPagination={setPagination}
                     totalItemCount={lastSuccessResult()?.countResult}
                     onRefresh={refetch}
+                    refreshing={data.loading}
                 />
             </div>
         </div>

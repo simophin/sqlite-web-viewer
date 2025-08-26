@@ -5,12 +5,13 @@ import { EditorView } from "@codemirror/view";
 import { createEffect, createMemo, onCleanup } from "solid-js";
 
 export default function SQLEditor(props: {
-    value?: string;
     onSubmit: (value: string) => void;
     singleLine?: boolean;
     onFocus?: () => void;
     onBlur?: () => void;
-    onValueChanged: (value: string) => void;
+    value: string;
+    onEditingValueChanged?: (value: string) => void;
+    clearSignal?: () => any;
 }) {
     const editorView = createMemo<EditorView, EditorView>((prevView) => {
         prevView?.destroy();
@@ -24,7 +25,7 @@ export default function SQLEditor(props: {
                 }),
                 EditorView.theme({
                     ".cm-content": {
-                        fontSize: "1rem"
+                        fontSize: "0.9rem"
                     }
                 }),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
@@ -51,8 +52,8 @@ export default function SQLEditor(props: {
                     blur: () => props.onBlur?.(),
                 }),
                 EditorView.updateListener.of(update => {
-                    if (update.docChanged) {
-                        props.onValueChanged?.(update.state.doc.toString());
+                    if (update.docChanged && props.onEditingValueChanged) {
+                        props.onEditingValueChanged(update.state.doc.toString());
                     }
                 }),
             ]
@@ -67,6 +68,23 @@ export default function SQLEditor(props: {
                 insert: props.value ?? ''
             }
         });
+
+        props.onEditingValueChanged?.(props.value);
+    });
+
+    createEffect(() => {
+        if (props.clearSignal) {
+            props.clearSignal();
+
+            editorView().dispatch({
+                changes: {
+                    from: 0,
+                    to: editorView().state.doc.length,
+                    insert: ''
+                }
+            });
+            props.onSubmit?.('');
+        }
     });
 
     onCleanup(() => {
