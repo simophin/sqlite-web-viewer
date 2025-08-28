@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 import "./FilterBar.css";
-import type { Sorting } from "./RecordQueryable";
+import type { Sorting } from "../RecordQueryable.tsx";
 import SQLEditor from "./SQLEditor";
 import { FaSolidXmark } from "solid-icons/fa";
 

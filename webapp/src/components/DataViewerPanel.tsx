@@ -1,5 +1,5 @@
 import { createMemo, For, Show } from "solid-js";
-import type { ColumnMeta } from "./RecordQueryable";
+import type { ColumnMeta } from "../RecordQueryable.tsx";
 import JSONFormatter from "json-formatter-js";
 import "./DataViewerPanel.css";
 

@@ -4,6 +4,7 @@ import androidx.sqlite.SQLITE_DATA_BLOB
 import androidx.sqlite.SQLITE_DATA_FLOAT
 import androidx.sqlite.SQLITE_DATA_INTEGER
 import androidx.sqlite.SQLITE_DATA_NULL
+import androidx.sqlite.SQLITE_DATA_TEXT
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteStatement
 import dev.fanchao.sqliteviewer.model.ColumnInfo
@@ -11,20 +12,13 @@ import dev.fanchao.sqliteviewer.model.Query
 import dev.fanchao.sqliteviewer.model.QueryResult
 import dev.fanchao.sqliteviewer.model.QueryResults
 import dev.fanchao.sqliteviewer.model.Queryable
-import dev.fanchao.sqliteviewer.model.Version
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 
-class SqliteQueryable(private val conn: SQLiteConnection) : Queryable {
-    override val dbVersion: Version by lazy {
-        conn.prepare("SELECT sqlite_version()").use { statement ->
-            statement.step()
-            Version.Companion.fromString(statement.getText(0))
-        }
-    }
-
+class SqliteQueryable(private val connFactory: () -> SQLiteConnection) : Queryable {
     override fun runInTransaction(queries: Sequence<Query>): QueryResults {
         val start = System.currentTimeMillis()
+        val conn = connFactory()
         val results = queries
             .map {
                 conn.prepare(it.sql).use { stmt ->
@@ -72,8 +66,12 @@ fun SQLiteStatement.toQueryResult(): QueryResult {
                     { JsonPrimitive(getLong(colIndex)) }
                 }
 
-                else -> {
+                SQLITE_DATA_TEXT -> {
                     { JsonPrimitive(getText(colIndex)) }
+                }
+
+                else -> {
+                    { JsonNull }
                 }
             }
         }

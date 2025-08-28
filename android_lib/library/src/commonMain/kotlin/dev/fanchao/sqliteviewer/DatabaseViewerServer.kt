@@ -108,13 +108,8 @@ private fun Application.configureDatabaseViewerRouting(
     routing {
         post("/query") {
             val req = call.receive<Request>()
-            val dbVersion = queryable.dbVersion
             val results = runCatching {
-                queryable.runInTransaction(
-                    req.queries
-                        .asSequence()
-                        .map { it.getQuery(dbVersion) }
-                )
+                queryable.runInTransaction(req.queries.asSequence())
             }.getOrElse { err ->
                 QueryResults.Error(
                     message = err.message.orEmpty(),

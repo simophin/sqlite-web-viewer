@@ -1,4 +1,4 @@
-import {tableRecordQueryable} from "./RecordQueryable.tsx";
+import {tableRecordQueryable} from "../RecordQueryable.tsx";
 import {Show} from "solid-js";
 import RecordBrowser from "./RecordBrowser.tsx";
 

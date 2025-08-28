@@ -1,24 +1,37 @@
-import { createMemo, createResource, createSignal, For, Index, Match, Show, Switch } from 'solid-js'
+import {createMemo, createResource, createSignal, For, Match, Show, Switch} from 'solid-js'
 import './App.css'
-import NavListPanel, { fetchTableList, isSameNavItem, type NavItem, type TableItem } from './components/NavListPanel.tsx'
-import { makePersisted } from '@solid-primitives/storage';
+import NavListPanel, {fetchTableList, isSameNavItem, type NavItem} from './components/NavListPanel.tsx'
+import {makePersisted} from '@solid-primitives/storage';
 import RecordBrowser from "./components/RecordBrowser.tsx";
-import { tableRecordQueryable } from "./components/RecordQueryable.tsx";
+import {type DbVersion, tableRecordQueryable} from "./RecordQueryable.tsx";
 import LazyPage from "./components/LazyPage.tsx";
 import QueryPage from './components/QueryPage.tsx';
+import {getDbVersion} from "./dbVersion.ts";
+
+type AppData = {
+    dbVersion: DbVersion;
+    navItems: NavItem[];
+}
 
 function App() {
     const [selected, setSelected] = makePersisted(createSignal<NavItem>(), { name: "selected_item" });
     const [leftPanelWidth, setLeftPanelWidth] = makePersisted(createSignal(250), { name: "left_panel_width" });
 
-    const [data, { refetch }] = createResource(fetchTableList);
+    const [data, { refetch }] = createResource(async () => {
+        const dbVersion = await getDbVersion();
+        const tables = await fetchTableList();
+        return { dbVersion, tables };
+    });
 
-    const latestNavItems = createMemo<NavItem[] | undefined, NavItem[] | undefined>(prev => {
+    const latestData = createMemo<AppData | undefined, AppData | undefined>(prev => {
         if (data.state === 'ready') {
-            return [
-                { id: 'default', name: 'Default', type: 'console' },
-                ...data()
-            ];
+            return {
+                dbVersion: data()!.dbVersion,
+                navItems: [
+                    { id: 'default', name: 'Default', type: 'console' },
+                    ...data()!.tables
+                ]
+            };
         } else {
             return prev;
         }
@@ -34,7 +47,7 @@ function App() {
     };
 
     const loadingElements = () => {
-        return <Show when={!latestNavItems() && data.loading}>
+        return <Show when={!latestData() && data.loading}>
             <div class="w-full h-full flex items-center justify-center">
                 <span class="loading loading-spinner loading-lg"></span>
             </div>
@@ -47,9 +60,9 @@ function App() {
                 <nav style={{ width: leftPanelWidth() + 'px' }} class="w-full h-full overflow-y-scroll" role="navigation">
                     {errorElements()}
 
-                    <Show when={!!latestNavItems()}>
+                    <Show when={!!latestData()}>
                         <NavListPanel
-                            items={latestNavItems()!}
+                            items={latestData()!.navItems}
                             selected={selected()}
                             setSelected={setSelected}
                             onReload={refetch}
@@ -89,8 +102,8 @@ function App() {
             <div class="grow h-full overflow-x-hidden">
                 {errorElements()}
 
-                <Show when={!!latestNavItems()}>
-                    <For each={latestNavItems()}>{(navItem) => {
+                <Show when={!!latestData()}>
+                    <For each={latestData()?.navItems}>{(navItem) => {
                         return <Switch>
                             <Match when={navItem.type === 'console'}>
                                 <LazyPage
@@ -105,7 +118,7 @@ function App() {
                                     active={!!selected() && isSameNavItem(navItem, selected()!)}
                                     component={RecordBrowser}
                                     componentProps={{
-                                        queryable: tableRecordQueryable(navItem.name)
+                                        queryable: tableRecordQueryable(navItem.name, latestData()!.dbVersion),
                                     }} />
                             </Match>
                         </Switch>

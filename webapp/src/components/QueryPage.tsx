@@ -2,7 +2,7 @@ import { createSignal, onCleanup, Show } from "solid-js";
 import SQLEditor from "./SQLEditor";
 import { makePersisted } from "@solid-primitives/storage";
 import RecordBrowser from "./RecordBrowser";
-import { rawSqlQueryable } from "./RecordQueryable";
+import { rawSqlQueryable } from "../RecordQueryable.tsx";
 
 export default function QueryPage(props: {
     pageId: string,

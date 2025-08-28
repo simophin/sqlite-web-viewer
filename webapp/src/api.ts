@@ -1,7 +1,6 @@
 
 export interface Request {
-    run_in_transaction?: boolean;
-    queries: ConditionalQuery[];
+    queries: Query[];
 }
 
 export interface SuccessResponse {
@@ -21,10 +20,6 @@ type Response = SuccessResponse | ErrorResponse;
 export interface Query {
     sql: string;
     params: string[];
-}
-
-export interface ConditionalQuery extends Query {
-    conditions?: { [versionCondition: string]: Query };
 }
 
 export interface ColumnInfo {

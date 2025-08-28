@@ -1,6 +1,6 @@
 import "./RecordBrowser.css";
 
-import type { Pagination, RecordQueryable, Sorting } from "./RecordQueryable.tsx";
+import type { Pagination, RecordQueryable, Sorting } from "../RecordQueryable.tsx";
 import { createEffect, createMemo, createResource, createSignal, For, Show, untrack } from "solid-js";
 import { executeSQL, type Request } from "../api.ts";
 import { PaginationBar } from "./PaginationBar.tsx";

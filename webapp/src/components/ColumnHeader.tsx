@@ -1,7 +1,7 @@
 import { FaSolidArrowDown91, FaSolidArrowUp19, FaSolidKey, FaSolidSort } from "solid-icons/fa";
 import { createMemo } from "solid-js";
 import { Dynamic } from "solid-js/web";
-import type { Sorting } from "./RecordQueryable";
+import type { Sorting } from "../RecordQueryable.tsx";
 
 export default function ColumnHeader(props: {
     columnName: string,

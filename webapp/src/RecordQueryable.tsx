@@ -1,4 +1,4 @@
-import type { ConditionalQuery } from "../api.ts";
+import type {Query} from "./api.ts";
 
 export type Sorting = { name: string; desc?: boolean }[];
 export type Pagination = {
@@ -25,10 +25,10 @@ export type ColumnMeta = {
 }
 
 export interface RecordQueryable {
-    mainQuery: (params: MainQueryParams) => ConditionalQuery;
-    countQuery?: (params: CountQueryParams) => ConditionalQuery;
+    mainQuery: (params: MainQueryParams) => Query;
+    countQuery?: (params: CountQueryParams) => Query;
     columnMetaQuery?: {
-        query: ConditionalQuery,
+        query: Query,
         parser: (rows: any[][]) => { [column: string]: ColumnMeta[] },
     };
     canFilter: boolean;
@@ -36,13 +36,18 @@ export interface RecordQueryable {
     canPaginate: boolean;
 }
 
-
+export type DbVersion = {
+    major: number;
+    minor: number;
+    patch: number;
+}
 
 export function tableRecordQueryable(
     tableName: string,
+    dbVersion: DbVersion,
 ): RecordQueryable {
     return {
-        mainQuery: ({ sorting, pagination, filter }): ConditionalQuery => {
+        mainQuery: ({ sorting, pagination, filter }): Query => {
             let sql = `SELECT * FROM ${tableName}`;
 
             if (filter) {
@@ -63,7 +68,7 @@ export function tableRecordQueryable(
             return { sql, params: [] };
         },
 
-        countQuery: ({ sorting, filter }): ConditionalQuery => {
+        countQuery: ({ sorting, filter }): Query => {
             let sql = `SELECT COUNT(*) FROM ${tableName}`;
 
             if (filter) {
@@ -83,15 +88,10 @@ export function tableRecordQueryable(
         columnMetaQuery: {
             query: {
                 sql:
-                    "SELECT name, type, `notnull`, dflt_value, pk, (hidden == 2) AS is_generated FROM pragma_table_xinfo(?)",
+                (dbVersion.major >= 3 && dbVersion.minor >= 26)
+                    ? "SELECT name, type, `notnull`, dflt_value, pk, (hidden == 2) AS is_generated FROM pragma_table_xinfo(?)"
+                    : "SELECT name, type, `notnull`, dflt_value, pk, 0 AS is_generated FROM pragma_table_info(?)",
                 params: [tableName],
-                conditions: {
-                    "<3.26.0": {
-                        sql:
-                            "SELECT name, type, `notnull`, dflt_value, pk, 0 AS is_generated FROM pragma_table_info(?)",
-                        params: [tableName],
-                    },
-                },
             },
             parser: (rows: any[][]) => {
                 return rows.reduce((acc, [name, t, notnull, dflt_value, pk, is_generated]) => {
@@ -125,7 +125,7 @@ export function tableRecordQueryable(
 
 export function rawSqlQueryable(sql: string): RecordQueryable {
     return {
-        mainQuery: (_params): ConditionalQuery => {
+        mainQuery: (_params): Query => {
             return { sql, params: [] }
         },
 

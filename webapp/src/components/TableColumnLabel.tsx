@@ -1,4 +1,4 @@
-import type {Sorting} from "./RecordQueryable.tsx";
+import type {Sorting} from "../RecordQueryable.tsx";
 
 export default function TableColumnLabel(props: {
     isPrimaryKey: boolean,

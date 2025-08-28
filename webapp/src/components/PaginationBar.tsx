@@ -1,6 +1,6 @@
 import './PaginationBar.css';
 import { FaSolidAngleLeft, FaSolidAngleRight, FaSolidRotateRight } from "solid-icons/fa";
-import type { Pagination } from "./RecordQueryable";
+import type { Pagination } from "../RecordQueryable.tsx";
 import { Show } from 'solid-js';
 
 export function PaginationBar(props: {
