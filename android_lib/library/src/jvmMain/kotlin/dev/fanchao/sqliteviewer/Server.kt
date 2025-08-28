@@ -1,5 +1,6 @@
 package dev.fanchao.sqliteviewer
 
+import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.filterIsInstance
@@ -16,20 +17,25 @@ class EmptyStaticAssetProvider : StaticAssetProvider {
 fun main() = runBlocking {
     val driver = BundledSQLiteDriver()
 
-    val conn = System.getenv("DB_PATH")
+    val connString = System.getenv("DB_PATH")
         ?.takeIf { it.isNotBlank() }
-        ?.let(driver::open)
-        ?: run {
-            println("No database path provided, using in-memory database.")
-            driver.open(":memory:").apply {
-                prepare("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)").use { it.step() }
-                prepare("INSERT INTO test (name) VALUES ('Alice'), ('Bob')").use { it.step() }
-            }
+        ?: ":memory:"
+
+    val connStorage = ThreadLocal<SQLiteConnection>()
+
+    val connFactory = {
+        var conn = connStorage.get()
+        if (conn == null) {
+           conn = driver.open(connString)
+           connStorage.set(conn)
         }
+
+        conn
+    }
 
     val instance = startDatabaseViewerServerShared(
         port = 3000,
-        queryable = SqliteQueryable(conn),
+        queryable = SqliteQueryable(connFactory),
         assetProvider = EmptyStaticAssetProvider()
     )
 
