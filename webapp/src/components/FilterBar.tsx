@@ -42,9 +42,9 @@ export default function FilterBar(props: {
             <SQLEditor
                 onFocus={() => setWhereHasFocus(true)}
                 onBlur={() => setWhereHasFocus(false)}
+                class="w-full text-medium"
                 value={props.where ?? ''}
                 onEditingValueChanged={input => setHasWhereInput(!!input)}
-                singleLine
                 clearSignal={clearWhere}
                 onSubmit={props.setWhere} />
         </div>
@@ -64,7 +64,7 @@ export default function FilterBar(props: {
                 onFocus={() => setSortingHasFocus(true)}
                 onBlur={() => setSortingHasFocus(false)}
                 value={serializeSortingInput(props.sorting)}
-                singleLine
+                class="w-full text-medium"
                 clearSignal={clearSorting}
                 onSubmit={(value) => {
                     const sorting = parseSortingInput(value);

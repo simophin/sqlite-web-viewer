@@ -5,13 +5,13 @@ import { EditorView } from "@codemirror/view";
 import { createEffect, createMemo, onCleanup } from "solid-js";
 
 export default function SQLEditor(props: {
-    onSubmit: (value: string) => void;
-    singleLine?: boolean;
+    onSubmit?: (value: string) => void;
     onFocus?: () => void;
     onBlur?: () => void;
     value: string;
     onEditingValueChanged?: (value: string) => void;
     clearSignal?: () => any;
+    class?: string;
 }) {
     const editorView = createMemo<EditorView, EditorView>((prevView) => {
         prevView?.destroy();
@@ -21,7 +21,7 @@ export default function SQLEditor(props: {
             extensions: [
                 SQLite,
                 EditorView.editorAttributes.of({
-                    class: "w-full text-medium"
+                    class: props.class ?? '',
                 }),
                 EditorView.theme({
                     ".cm-content": {
@@ -30,7 +30,7 @@ export default function SQLEditor(props: {
                 }),
                 syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
                 ...(
-                    props.singleLine ? [
+                    props.onSubmit ? [
                         EditorState.transactionFilter.of(tr => {
                             return tr.newDoc.lines > 1 ? [] : [tr]
                         })
@@ -38,7 +38,7 @@ export default function SQLEditor(props: {
                 ),
                 EditorView.domEventHandlers({
                     keydown(event, view) {
-                        if ((props.singleLine && event.key === "Enter")) {
+                        if ((props.onSubmit && event.key === "Enter")) {
                             event.preventDefault();
                             if (event.target && event.target instanceof HTMLElement) {
                                 event.target.blur();

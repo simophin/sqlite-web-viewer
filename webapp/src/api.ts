@@ -42,7 +42,7 @@ export async function executeSQL(req: Request): Promise<SuccessResponse> {
     const res = await fetch('http://localhost:3000/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req)
+        body: JSON.stringify(req),
     })
     if (!res.ok) throw new Error('API error')
     const result: Response = await res.json();

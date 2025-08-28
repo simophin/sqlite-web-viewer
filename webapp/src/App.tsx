@@ -1,34 +1,62 @@
-import {createResource, createSignal, Index, Match, Switch} from 'solid-js'
+import { createMemo, createResource, createSignal, For, Index, Match, Show, Switch } from 'solid-js'
 import './App.css'
-import TableListPanel, {fetchTableList} from './components/TableListPanel'
-import {makePersisted} from '@solid-primitives/storage';
+import NavListPanel, { fetchTableList, isSameNavItem, type NavItem, type TableItem } from './components/NavListPanel.tsx'
+import { makePersisted } from '@solid-primitives/storage';
 import RecordBrowser from "./components/RecordBrowser.tsx";
-import {tableRecordQueryable} from "./components/RecordQueryable.tsx";
+import { tableRecordQueryable } from "./components/RecordQueryable.tsx";
 import LazyPage from "./components/LazyPage.tsx";
+import QueryPage from './components/QueryPage.tsx';
 
 function App() {
-    const [selected, setSelected] = makePersisted(createSignal<string | null>(null), { name: "selected_table" });
+    const [selected, setSelected] = makePersisted(createSignal<NavItem>(), { name: "selected_item" });
     const [leftPanelWidth, setLeftPanelWidth] = makePersisted(createSignal(250), { name: "left_panel_width" });
 
-    const [ tables, { refetch } ] = createResource(fetchTableList);
+    const [data, { refetch }] = createResource(fetchTableList);
+
+    const latestNavItems = createMemo<NavItem[] | undefined, NavItem[] | undefined>(prev => {
+        if (data.state === 'ready') {
+            return [
+                { id: 'default', name: 'Default', type: 'console' },
+                ...data()
+            ];
+        } else {
+            return prev;
+        }
+    });
+
+    const errorElements = () => {
+        if (data.state === 'errored') {
+            return <div role="alert" class="alert alert-error alert-vertical sm:alert-horizontal">
+                <span>{data.error}</span>
+                <button class="btn btn-sm btn-primary" onClick={refetch}>Reload</button>
+            </div>
+        }
+    };
+
+    const loadingElements = () => {
+        return <Show when={!latestNavItems() && data.loading}>
+            <div class="w-full h-full flex items-center justify-center">
+                <span class="loading loading-spinner loading-lg"></span>
+            </div>
+        </Show>
+    };
 
     return <>
         <main class="flex h-screen w-screen">
             <aside class="shrink-0 h-full">
-                <nav style={{width: leftPanelWidth() + 'px'}} class="w-full h-full overflow-y-scroll" role="navigation">
-                    <Switch fallback={<p>Loading...</p>}>
-                        <Match when={tables.error}>
-                            <p>Error loading tables: {tables.error}</p>
-                        </Match>
-                        <Match when={tables()}>
-                            <TableListPanel
-                                tables={tables()!}
-                                selected={selected()}
-                                setSelected={setSelected}
-                                onReload={refetch}
-                            />
-                        </Match>
-                    </Switch>
+                <nav style={{ width: leftPanelWidth() + 'px' }} class="w-full h-full overflow-y-scroll" role="navigation">
+                    {errorElements()}
+
+                    <Show when={!!latestNavItems()}>
+                        <NavListPanel
+                            items={latestNavItems()!}
+                            selected={selected()}
+                            setSelected={setSelected}
+                            onReload={refetch}
+                        />
+                    </Show>
+
+                    {loadingElements()}
                 </nav>
             </aside>
 
@@ -59,20 +87,34 @@ function App() {
             </div>
 
             <div class="grow h-full overflow-x-hidden">
-                <Switch fallback={<p>Loading...</p>}>
-                    <Match when={tables.error}>
-                        <p>Error loading tables: {tables.error}</p>
-                    </Match>
-                    <Match when={tables()}>
-                        <Index each={tables()}>{ (table) =>
-                            <LazyPage active={selected() == table().name}
-                                      component={RecordBrowser}
-                                      componentProps={{
-                                          queryable: tableRecordQueryable(table().name)
-                                      }} />
-                        }</Index>
-                    </Match>
-                </Switch>
+                {errorElements()}
+
+                <Show when={!!latestNavItems()}>
+                    <For each={latestNavItems()}>{(navItem) => {
+                        return <Switch>
+                            <Match when={navItem.type === 'console'}>
+                                <LazyPage
+                                    active={!!selected() && isSameNavItem(navItem, selected()!)}
+                                    component={QueryPage}
+                                    componentProps={{
+                                        pageId: (navItem.type === 'console') ? navItem.id : '',
+                                    }} />
+                            </Match>
+                            <Match when={navItem.type !== 'console'}>
+                                <LazyPage
+                                    active={!!selected() && isSameNavItem(navItem, selected()!)}
+                                    component={RecordBrowser}
+                                    componentProps={{
+                                        queryable: tableRecordQueryable(navItem.name)
+                                    }} />
+                            </Match>
+                        </Switch>
+                    }
+                    }</For>
+                </Show>
+
+                {loadingElements()}
+
             </div>
         </main>
     </>;
