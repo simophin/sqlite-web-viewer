@@ -1,3 +1,4 @@
+import { DEV } from "solid-js";
 
 export interface Request {
     queries: Query[];
@@ -34,7 +35,9 @@ export type QueryResult = {
 
 
 export async function executeSQL(req: Request): Promise<SuccessResponse> {
-    const res = await fetch('http://localhost:3000/query', {
+    const server = DEV ? 'http://localhost:3000/query' : '/query';
+
+    const res = await fetch(server, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req),

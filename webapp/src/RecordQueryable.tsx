@@ -125,30 +125,15 @@ export function tableRecordQueryable(
 
 export function rawSqlQueryable(sql: string): RecordQueryable {
     return {
-        mainQuery: (params): Query => {
-            let s = `WITH _my_table AS (${sql}) SELECT * FROM _my_table`;
-
-            if (params.pagination) {
-                s += ` LIMIT ${params.pagination.offset}, ${params.pagination.limit}`;
-            }
-
-            return { 
-                sql: s,
-                params: [] 
-            }
-        },
-
-        countQuery: (_params): Query => {
-            let s = `WITH _my_table AS (${sql}) SELECT COUNT(*) FROM _my_table`;
-
+        mainQuery: (_params): Query => {
             return {
-                sql: s,
+                sql,
                 params: []
             }
         },
 
         canFilter: false,
-        canPaginate: true,
+        canPaginate: false,
         canSort: false
     }
 }
