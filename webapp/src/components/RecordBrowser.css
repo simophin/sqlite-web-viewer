@@ -1,0 +1,46 @@
+@reference "../style.css";
+
+.data-table {
+    @apply table table-sm;
+}
+
+.data-table thead {
+    @apply bg-base-200;
+}
+
+.data-table>thead>th {
+    @apply border-2 border-base-200;
+}
+
+.data-table td,
+.data-table th {
+    @apply border-2 border-base-200;
+    min-width: 20px;
+    max-width: 250px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: default;
+    font-size: 14px;
+}
+
+.data-table th {
+    /*display: flex;*/
+    /*justify-items: start;*/
+}
+
+.data-table td[aria-selected="true"] {
+    @apply bg-base-300 border-2 border-base-300;
+}
+
+
+/*  Set hovering background on rows  */
+.data-table tbody tr:hover {
+    @apply bg-base-200;
+}
+
+/* Alternative row colors */
+.data-table tr:nth-child(odd) {
+    @apply bg-base-200/40;
+}
+

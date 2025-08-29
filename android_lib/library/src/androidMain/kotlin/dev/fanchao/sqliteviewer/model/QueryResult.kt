@@ -30,5 +30,5 @@ fun QueryResult.Companion.fromCursor(
         }
     }
 
-    return QueryResult(numAffected, columns, rows)
+    return QueryResult(numAffected = numAffected, columns = columns, rows = rows)
 }

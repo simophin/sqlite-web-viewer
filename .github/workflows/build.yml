@@ -14,12 +14,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2.14.0
-        with:
-          # The Flutter build release channel
-          channel: stable
-          # Cache the Flutter SDK
-          cache: true
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -28,17 +22,18 @@ jobs:
           distribution: "temurin"
           cache: "gradle"
 
-      - name: Run flutter build runner
-        run: dart run build_runner build -d
-        working-directory: flutter_app
+      - uses: actions/setup-node@v4
+        with:
+          cache: 'npm'
+          node-version: 24
 
-      - name: Run flutter build
-        run: flutter build web --wasm --release
-        working-directory: flutter_app
+      - name: Run node build
+        run: npm ci && npm run build
+        working-directory: webapp
 
       - name: Copy web build to android library
-        run: cp -Rv build/web ../android_lib/library/src/androidMain/assets/webapp
-        working-directory: flutter_app
+        run: cp -Rv dist ../android_lib/library/src/androidMain/assets/webapp
+        working-directory: webapp
 
       - name: Build android library
         if: github.event_name != 'workflow_dispatch'

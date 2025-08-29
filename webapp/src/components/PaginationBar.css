@@ -1,0 +1,17 @@
+@reference "../style.css";
+
+.pagination-bar {
+    @apply p-1 bg-base-300/40 hover:bg-base-300/60;
+}
+
+.pagination-bar span[role="button"] {
+    @apply btn btn-xs btn-circle btn-ghost;
+}
+
+.pagination-bar span[role="button"]>* {
+    @apply w-4 h-4;
+}
+
+.pagination-bar label {
+    font-size: small;
+}

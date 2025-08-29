@@ -1,23 +1,14 @@
 
 package dev.fanchao.sqliteviewer.model
 
-import android.os.SystemClock
 import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 class SupportQueryable(private val db: SupportSQLiteDatabase) : Queryable {
-    override val dbVersion: Version by lazy {
-        db.query("SELECT sqlite_version() AS version")
-            .use { cursor ->
-                require(cursor.moveToNext()) {
-                    "Failed to retrieve SQLite version from the database."
-                }
-
-                Version.fromString(cursor.getString(0))
-            }
-    }
-
+    @OptIn(ExperimentalTime::class)
     override fun runInTransaction(queries: Sequence<Query>): QueryResults {
-        val start = SystemClock.elapsedRealtimeNanos()
+        val start = Clock.System.now()
         db.beginTransaction()
         return try {
             val results = queries
@@ -28,8 +19,8 @@ class SupportQueryable(private val db: SupportSQLiteDatabase) : Queryable {
                 .toList()
 
             db.setTransactionSuccessful()
-            QueryResults(
-                executionTimeUs = (SystemClock.elapsedRealtimeNanos() - start) / 1000L,
+            QueryResults.Success(
+                executionTimeUs = (Clock.System.now() - start).inWholeMicroseconds,
                 results = results
             )
         } finally {

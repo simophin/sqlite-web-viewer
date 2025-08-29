@@ -1,0 +1,9 @@
+@reference "../style.css";
+
+.column-row {
+    @apply flex items-center gap-2;
+}
+
+.column-row label {
+    @apply font-medium p-1 bg-base-300;
+}

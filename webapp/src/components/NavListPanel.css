@@ -1,0 +1,14 @@
+.table-list li {
+    cursor: default;
+    padding: 6px;
+    font-size: medium;
+}
+
+.table-list li[aria-selected="true"], .table-list li:hover {
+    background-color: #f0f0f0;
+    color: #000;
+}
+
+.table-list li[aria-selected="true"] {
+    font-weight: bold;
+}
