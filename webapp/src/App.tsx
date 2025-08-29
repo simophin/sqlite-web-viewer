@@ -1,12 +1,12 @@
-import {createMemo, createResource, createSignal, For, Match, Show, Switch} from 'solid-js'
+import { createMemo, createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
 import './App.css'
-import NavListPanel, {fetchTableList, isSameNavItem, type NavItem} from './components/NavListPanel.tsx'
-import {makePersisted} from '@solid-primitives/storage';
+import NavListPanel, { fetchTableList, isSameNavItem, type NavItem } from './components/NavListPanel.tsx'
+import { makePersisted } from '@solid-primitives/storage';
 import RecordBrowser from "./components/RecordBrowser.tsx";
-import {type DbVersion, tableRecordQueryable} from "./RecordQueryable.tsx";
+import { type DbVersion, tableRecordQueryable } from "./RecordQueryable.tsx";
 import LazyPage from "./components/LazyPage.tsx";
 import QueryPage from './components/QueryPage.tsx';
-import {getDbVersion} from "./dbVersion.ts";
+import { getDbVersion } from "./dbVersion.ts";
 
 type AppData = {
     dbVersion: DbVersion;
@@ -111,6 +111,7 @@ function App() {
                                     component={QueryPage}
                                     componentProps={{
                                         pageId: (navItem.type === 'console') ? navItem.id : '',
+                                        dbVersion: latestData()!.dbVersion,
                                     }} />
                             </Match>
                             <Match when={navItem.type !== 'console'}>

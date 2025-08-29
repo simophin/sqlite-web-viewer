@@ -2,6 +2,7 @@ import { createMemo, For, Show } from "solid-js";
 import type { ColumnMeta } from "../RecordQueryable.tsx";
 import JSONFormatter from "json-formatter-js";
 import "./DataViewerPanel.css";
+import { FaSolidX } from "solid-icons/fa";
 
 export default function DataViewerPanel(
     props: {
@@ -22,9 +23,10 @@ export default function DataViewerPanel(
 
     return (
         <div class="w-full overflow-y-scroll">
-            <div>
-                <button class="btn btn-neutral" onClick={props.onClose}>
-                    CLOSE
+            <div class="flex items-center p-1">
+                <label class="grow font-medium">Value display</label>
+                <button class="btn btn-circle btn-sm mb-1" onClick={props.onClose}>
+                    <FaSolidX />
                 </button>
             </div>
             <For each={props.columns}>{(meta) =>
@@ -36,8 +38,10 @@ export default function DataViewerPanel(
 
             <div class="flex column-row"><label>Value</label></div>
             <Show when={jsonDisplayDom()}
-                fallback={<pre>{props.value?.toString()}</pre>}>
-                {jsonDisplayDom()}
+                fallback={<pre class="overflow-x-scroll">{props.value?.toString()}</pre>}>
+                <div class="overflow-x-scroll">
+                    {jsonDisplayDom()}
+                </div>
             </Show>
         </div>
     )
