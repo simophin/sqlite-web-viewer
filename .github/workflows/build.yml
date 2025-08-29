@@ -28,7 +28,7 @@ jobs:
           node-version: 24
 
       - name: Run node build
-        run: npm run build
+        run: npm ci && npm run build
         working-directory: webapp
 
       - name: Copy web build to android library
