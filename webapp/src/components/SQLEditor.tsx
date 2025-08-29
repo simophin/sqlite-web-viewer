@@ -33,24 +33,24 @@ export default function SQLEditor(props: {
                     props.onSubmit ? [
                         EditorState.transactionFilter.of(tr => {
                             return tr.newDoc.lines > 1 ? [] : [tr]
+                        }),
+                        EditorView.domEventHandlers({
+                            keydown(event, view) {
+                                if ((event.key === "Enter")) {
+                                    event.preventDefault();
+                                    if (event.target && event.target instanceof HTMLElement) {
+                                        event.target.blur();
+                                    }
+
+                                    props.onSubmit!(view.state.doc.toString());
+                                }
+                            },
+
+                            focus: () => props.onFocus?.(),
+                            blur: () => props.onBlur?.(),
                         })
                     ] : []
                 ),
-                EditorView.domEventHandlers({
-                    keydown(event, view) {
-                        if ((props.onSubmit && event.key === "Enter")) {
-                            event.preventDefault();
-                            if (event.target && event.target instanceof HTMLElement) {
-                                event.target.blur();
-                            }
-
-                            props.onSubmit(view.state.doc.toString());
-                        }
-                    },
-
-                    focus: () => props.onFocus?.(),
-                    blur: () => props.onBlur?.(),
-                }),
                 EditorView.updateListener.of(update => {
                     if (update.docChanged && props.onEditingValueChanged) {
                         props.onEditingValueChanged(update.state.doc.toString());

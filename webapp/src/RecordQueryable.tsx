@@ -1,4 +1,4 @@
-import type {Query} from "./api.ts";
+import type { Query } from "./api.ts";
 
 export type Sorting = { name: string; desc?: boolean }[];
 export type Pagination = {
@@ -88,9 +88,9 @@ export function tableRecordQueryable(
         columnMetaQuery: {
             query: {
                 sql:
-                (dbVersion.major >= 3 && dbVersion.minor >= 26)
-                    ? "SELECT name, type, `notnull`, dflt_value, pk, (hidden == 2) AS is_generated FROM pragma_table_xinfo(?)"
-                    : "SELECT name, type, `notnull`, dflt_value, pk, 0 AS is_generated FROM pragma_table_info(?)",
+                    (dbVersion.major >= 3 && dbVersion.minor >= 26)
+                        ? "SELECT name, type, `notnull`, dflt_value, pk, (hidden == 2) AS is_generated FROM pragma_table_xinfo(?)"
+                        : "SELECT name, type, `notnull`, dflt_value, pk, 0 AS is_generated FROM pragma_table_info(?)",
                 params: [tableName],
             },
             parser: (rows: any[][]) => {
@@ -125,12 +125,30 @@ export function tableRecordQueryable(
 
 export function rawSqlQueryable(sql: string): RecordQueryable {
     return {
-        mainQuery: (_params): Query => {
-            return { sql, params: [] }
+        mainQuery: (params): Query => {
+            let s = `WITH _my_table AS (${sql}) SELECT * FROM _my_table`;
+
+            if (params.pagination) {
+                s += ` LIMIT ${params.pagination.offset}, ${params.pagination.limit}`;
+            }
+
+            return { 
+                sql: s,
+                params: [] 
+            }
+        },
+
+        countQuery: (_params): Query => {
+            let s = `WITH _my_table AS (${sql}) SELECT COUNT(*) FROM _my_table`;
+
+            return {
+                sql: s,
+                params: []
+            }
         },
 
         canFilter: false,
-        canPaginate: false,
+        canPaginate: true,
         canSort: false
     }
 }
