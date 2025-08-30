@@ -1,8 +1,9 @@
 import { makePersisted } from "@solid-primitives/storage";
-import { createEffect, createMemo, createSignal, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { rawSqlQueryable, tableRecordQueryable, type DbVersion } from "../RecordQueryable.tsx";
 import RecordBrowser from "./RecordBrowser";
 import SQLEditor from "./SQLEditor";
+import { FaSolidClockRotateLeft } from "solid-icons/fa";
 
 export default function QueryPage(props: {
     pageId: string,
@@ -81,6 +82,25 @@ export default function QueryPage(props: {
                             setExecutingSql(undefined);
                             setExecuteSeq(executeSeq() + 1);
                         }}>Clear</button>
+
+                    <div class="grow"></div>
+
+                    <div class="dropdown dropdown-end">
+                        <button tabindex="0" class="btn btn-ghost btn-xs">
+                            <FaSolidClockRotateLeft />
+                        </button>
+
+                        <ul tabindex="0" class="dropdown-content max-w-60 max-h-80 overflow-y-scroll z-1 bg-base-100 rounded-box p-2 shadow-sm">
+                            <For each={history()}>{(item) =>
+                                <li class="p-2 hover:bg-accent-content cursor-default text-sm w-full overflow-x-hidden select-none"
+                                    onclick={() => {
+                                        setEditingValue(item);
+                                        (document.activeElement as HTMLElement).blur();
+                                    }}
+                                ><a class="overflow-ellipsis overflow-x-hidden whitespace-nowrap">{item}</a></li>
+                            }</For>
+                        </ul>
+                    </div>
 
                 </div>
             </div>

@@ -19,6 +19,7 @@
     "@picocss/pico": "^2.1.1",
     "@solid-primitives/storage": "^4.3.3",
     "@tailwindcss/vite": "^4.1.11",
+    "highlight.js": "^11.11.1",
     "json-formatter-js": "^2.5.23",
     "lodash.isequal": "^4.5.0",
     "lru-cache": "^11.1.0",

@@ -1,12 +1,15 @@
-import { createMemo, createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
+import {createMemo, createResource, createSignal, For, Match, Show, Switch} from 'solid-js'
 import './App.css'
-import NavListPanel, { fetchTableList, isSameNavItem, type NavItem } from './components/NavListPanel.tsx'
-import { makePersisted } from '@solid-primitives/storage';
-import RecordBrowser from "./components/RecordBrowser.tsx";
-import { type DbVersion, tableRecordQueryable } from "./RecordQueryable.tsx";
+import NavListPanel, {fetchTableList, isSameNavItem, type NavItem} from './components/NavListPanel.tsx'
+import {makePersisted} from '@solid-primitives/storage';
+import {type DbVersion} from "./RecordQueryable.tsx";
 import LazyPage from "./components/LazyPage.tsx";
 import QueryPage from './components/QueryPage.tsx';
-import { getDbVersion } from "./dbVersion.ts";
+import {getDbVersion} from "./dbVersion.ts";
+import TableBrowser from './components/TableBrowser.tsx';
+
+import hljs from 'highlight.js/lib/core';
+import sql from 'highlight.js/lib/languages/sql';
 
 type AppData = {
     dbVersion: DbVersion;
@@ -22,6 +25,8 @@ function App() {
         const tables = await fetchTableList();
         return { dbVersion, tables };
     });
+
+    hljs.registerLanguage('sql', sql);
 
     const latestData = createMemo<AppData | undefined, AppData | undefined>(prev => {
         if (data.state === 'ready') {
@@ -117,9 +122,10 @@ function App() {
                             <Match when={navItem.type !== 'console'}>
                                 <LazyPage
                                     active={!!selected() && isSameNavItem(navItem, selected()!)}
-                                    component={RecordBrowser}
+                                    component={TableBrowser}
                                     componentProps={{
-                                        queryable: tableRecordQueryable(navItem.name, latestData()!.dbVersion),
+                                        table: navItem.name,
+                                        dbVersion: latestData()!.dbVersion,
                                     }} />
                             </Match>
                         </Switch>
