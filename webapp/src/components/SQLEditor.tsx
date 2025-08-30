@@ -61,15 +61,17 @@ export default function SQLEditor(props: {
     });
 
     createEffect(() => {
-        editorView().dispatch({
-            changes: {
-                from: 0,
-                to: editorView().state.doc.length,
-                insert: props.value ?? ''
-            }
-        });
+        if (props.value != editorView().state.doc.toString()) {
+            editorView().dispatch({
+                changes: {
+                    from: 0,
+                    to: editorView().state.doc.length,
+                    insert: props.value ?? ''
+                }
+            });
 
-        props.onEditingValueChanged?.(props.value);
+            props.onEditingValueChanged?.(props.value);
+        }
     });
 
     createEffect(() => {

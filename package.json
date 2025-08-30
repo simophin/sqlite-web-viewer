@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@solid-primitives/storage": "^4.3.3"
+    "@solid-primitives/storage": "^4.3.3",
+    "jjsontree.js": "^4.7.1"
   }
 }

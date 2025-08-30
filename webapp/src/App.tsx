@@ -1,12 +1,19 @@
-import { createMemo, createResource, createSignal, For, Match, Show, Switch } from 'solid-js'
+import {createEffect, createMemo, createResource, createSignal, For, Match, Show, Switch} from 'solid-js'
 import './App.css'
-import NavListPanel, { fetchTableList, isSameNavItem, type NavItem } from './components/NavListPanel.tsx'
-import { makePersisted } from '@solid-primitives/storage';
-import RecordBrowser from "./components/RecordBrowser.tsx";
-import { type DbVersion, tableRecordQueryable } from "./RecordQueryable.tsx";
+import NavListPanel, {fetchDbItems, isSameNavItem, type NavItem} from './components/NavListPanel.tsx'
+import {makePersisted} from '@solid-primitives/storage';
+import {type DbVersion} from "./RecordQueryable.tsx";
 import LazyPage from "./components/LazyPage.tsx";
 import QueryPage from './components/QueryPage.tsx';
-import { getDbVersion } from "./dbVersion.ts";
+import {getDbVersion} from "./dbVersion.ts";
+import TablePage from './components/TablePage.tsx';
+
+import hljs from 'highlight.js/lib/core';
+import sql from 'highlight.js/lib/languages/sql';
+import TriggerView from "./components/TriggerView.tsx";
+import DarkModeSwitch from "./components/DarkModeSwitch.tsx";
+import {useDarkTheme} from "./components/useDarkTheme.ts";
+import {useSystemDarkTheme} from "./components/useSystemDarkTheme.ts";
 
 type AppData = {
     dbVersion: DbVersion;
@@ -19,9 +26,11 @@ function App() {
 
     const [data, { refetch }] = createResource(async () => {
         const dbVersion = await getDbVersion();
-        const tables = await fetchTableList();
+        const tables = await fetchDbItems();
         return { dbVersion, tables };
     });
+
+    hljs.registerLanguage('sql', sql);
 
     const latestData = createMemo<AppData | undefined, AppData | undefined>(prev => {
         if (data.state === 'ready') {
@@ -54,10 +63,23 @@ function App() {
         </Show>
     };
 
+    // Change our theme if system theme changes
+    const [_, setDarkTheme] = useDarkTheme();
+    const systemDarkTheme = useSystemDarkTheme();
+
+    createEffect(()=> {
+        setDarkTheme(systemDarkTheme());
+    });
+
     return <>
         <main class="flex h-screen w-screen">
-            <aside class="shrink-0 h-full">
-                <nav style={{ width: leftPanelWidth() + 'px' }} class="w-full h-full overflow-y-scroll" role="navigation">
+            <aside class="shrink-0 h-full flex flex-col bg-base-200">
+                <div class="flex pt-3 pl-3 pb-1 pr-3">
+                    <h1 class="font-medium text-lg">SQLite Viewer</h1>
+                    <div class="grow"/>
+                    <DarkModeSwitch />
+                </div>
+                <nav style={{width: leftPanelWidth() + 'px'}} class="w-full grow overflow-y-scroll" role="navigation">
                     {errorElements()}
 
                     <Show when={!!latestData()}>
@@ -114,12 +136,21 @@ function App() {
                                         dbVersion: latestData()!.dbVersion,
                                     }} />
                             </Match>
+                            <Match when={navItem.type === 'trigger'}>
+                                <LazyPage
+                                    active={!!selected() && isSameNavItem(navItem, selected()!)}
+                                    component={TriggerView}
+                                    componentProps={{
+                                        trigger: navItem.name,
+                                    }} />
+                            </Match>
                             <Match when={navItem.type !== 'console'}>
                                 <LazyPage
                                     active={!!selected() && isSameNavItem(navItem, selected()!)}
-                                    component={RecordBrowser}
+                                    component={TablePage}
                                     componentProps={{
-                                        queryable: tableRecordQueryable(navItem.name, latestData()!.dbVersion),
+                                        table: navItem.name,
+                                        dbVersion: latestData()!.dbVersion,
                                     }} />
                             </Match>
                         </Switch>

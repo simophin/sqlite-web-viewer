@@ -11,7 +11,6 @@ export default function ColumnHeader(props: {
     onSortingChange?: (newSorting: Sorting) => void
 }) {
     const primaryIcons = createMemo(() => {
-        console.log('Primary Keys:', props.primaryKeys);
         if (!props.primaryKeys) return [];
 
         const index = props.primaryKeys.indexOf(props.columnName);

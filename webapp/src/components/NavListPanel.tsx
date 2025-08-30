@@ -2,13 +2,31 @@ import './NavListPanel.css';
 
 import { For } from 'solid-js'
 import { executeSQL } from "../api.ts";
+import {FaSolidArrowPointer, FaSolidTable, FaSolidTerminal, FaSolidWindowMaximize} from "solid-icons/fa";
+import {Dynamic} from "solid-js/web";
 
-export type TableItem = {
-    name: string,
-    type: 'table' | 'view'
+const tableItemTypes = {
+    'table': {
+        'label': 'Tables',
+        'icon': FaSolidTable,
+    },
+    'view': {
+        'label': 'Views',
+        'icon': FaSolidWindowMaximize,
+    },
+    'trigger': {
+        'label': 'Triggers',
+        'icon': FaSolidArrowPointer,
+    }
 }
 
-export async function fetchTableList(): Promise<TableItem[]> {
+export type DbItem = {
+    name: string,
+    type: keyof typeof tableItemTypes,
+}
+
+export async function fetchDbItems(): Promise<DbItem[]> {
+    const types = Object.keys(tableItemTypes).map((t) => `'${t}'`).join(',');
     const {
         results: [
             {
@@ -18,7 +36,7 @@ export async function fetchTableList(): Promise<TableItem[]> {
     } = await executeSQL({
         queries: [
             {
-                sql: "SELECT name, type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND type IN ('table', 'view') ORDER BY type, name",
+                sql: `SELECT name, type FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND type IN (${types}) ORDER BY type, name`,
                 params: [],
             }
         ]
@@ -27,7 +45,7 @@ export async function fetchTableList(): Promise<TableItem[]> {
     return rows.map(([name, type]) => {
         return {
             name: `${name}`,
-            type: type == 'table' ? 'table' : 'view',
+            type: type as DbItem['type'],
         }
     });
 }
@@ -38,7 +56,7 @@ export type NavItem = {
     type: 'console'
 } | {
     name: string,
-    type: TableItem['type'],
+    type: DbItem['type'],
 };
 
 export function isSameNavItem(item1: NavItem, item2: NavItem) {
@@ -62,11 +80,14 @@ export default function NavListPanel(props: {
         return acc;
     }, [] as { type: NavItem['type'], items: [NavItem] }[]);
 
-    return (
-        <ul class="menu bg-base-200 w-full h-full overflow-scroll flex-nowrap">
+    return <>
+        <ul class="menu w-full h-full overflow-scroll flex-nowrap">
             <For each={itemsByTypes()}>{({ type, items }) =>
                 <>
-                    <li class="menu-title">{getGroupTitle(type)}</li>
+                    <li class="menu-title flex flex-row items-center gap-1">
+                        <Dynamic component={getGroupIcon(type)} class="w-3 h-3" />
+                        {getGroupTitle(type)}
+                    </li>
                     <For each={items}>{(item) =>
                         <li>
                             <a href="#"
@@ -78,19 +99,24 @@ export default function NavListPanel(props: {
                 </>
             }</For>
         </ul>
-    )
+    </>;
 }
 
 function getGroupTitle(type: NavItem['type']) {
     switch (type) {
-        case 'table':
-            return 'Tables';
-        case 'view':
-            return 'Views';
         case 'console':
             return 'Consoles';
         default:
-            return type;
+            return tableItemTypes[type].label;
+    }
+}
+
+function getGroupIcon(type: NavItem['type']) {
+    switch (type) {
+        case 'console':
+            return FaSolidTerminal;
+        default:
+            return tableItemTypes[type].icon;
     }
 }
 
@@ -100,6 +126,7 @@ function getLabel(item: NavItem) {
             return item.id;
         case 'table':
         case 'view':
+        case 'trigger':
             return item.name;
     }
 }
