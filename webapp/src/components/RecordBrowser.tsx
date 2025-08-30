@@ -181,7 +181,7 @@ export default function RecordBrowser(props: {
         </table>
     </Show>;
 
-    return <div class={"flex h-full w-full flex-col items-start gap-1 mt-1 " + (props.visible ? "" : "hidden")}>
+    return <div class={"flex h-full w-full flex-col items-start gap-1 m-1 " + (props.visible ? "" : "hidden")}>
         <Show when={props.queryable.canFilter && props.queryable.canSort}>
             <FilterBar setSorting={setSorting} sorting={sorting()} setWhere={setFilter} where={filter()} />
         </Show>

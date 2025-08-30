@@ -1,15 +1,16 @@
 import {createMemo, createResource, createSignal, For, Match, Show, Switch} from 'solid-js'
 import './App.css'
-import NavListPanel, {fetchTableList, isSameNavItem, type NavItem} from './components/NavListPanel.tsx'
+import NavListPanel, {fetchDbItems, isSameNavItem, type NavItem} from './components/NavListPanel.tsx'
 import {makePersisted} from '@solid-primitives/storage';
 import {type DbVersion} from "./RecordQueryable.tsx";
 import LazyPage from "./components/LazyPage.tsx";
 import QueryPage from './components/QueryPage.tsx';
 import {getDbVersion} from "./dbVersion.ts";
-import TableBrowser from './components/TableBrowser.tsx';
+import TablePage from './components/TablePage.tsx';
 
 import hljs from 'highlight.js/lib/core';
 import sql from 'highlight.js/lib/languages/sql';
+import TriggerView from "./components/TriggerView.tsx";
 
 type AppData = {
     dbVersion: DbVersion;
@@ -22,7 +23,7 @@ function App() {
 
     const [data, { refetch }] = createResource(async () => {
         const dbVersion = await getDbVersion();
-        const tables = await fetchTableList();
+        const tables = await fetchDbItems();
         return { dbVersion, tables };
     });
 
@@ -61,8 +62,9 @@ function App() {
 
     return <>
         <main class="flex h-screen w-screen">
-            <aside class="shrink-0 h-full">
-                <nav style={{ width: leftPanelWidth() + 'px' }} class="w-full h-full overflow-y-scroll" role="navigation">
+            <aside class="shrink-0 h-full flex flex-col bg-base-200">
+                <h1 class="font-medium text-lg pt-3 pl-3 pb-1">SQLite Viewer</h1>
+                <nav style={{ width: leftPanelWidth() + 'px' }} class="w-full grow overflow-y-scroll" role="navigation">
                     {errorElements()}
 
                     <Show when={!!latestData()}>
@@ -119,10 +121,18 @@ function App() {
                                         dbVersion: latestData()!.dbVersion,
                                     }} />
                             </Match>
+                            <Match when={navItem.type === 'trigger'}>
+                                <LazyPage
+                                    active={!!selected() && isSameNavItem(navItem, selected()!)}
+                                    component={TriggerView}
+                                    componentProps={{
+                                        trigger: navItem.name,
+                                    }} />
+                            </Match>
                             <Match when={navItem.type !== 'console'}>
                                 <LazyPage
                                     active={!!selected() && isSameNavItem(navItem, selected()!)}
-                                    component={TableBrowser}
+                                    component={TablePage}
                                     componentProps={{
                                         table: navItem.name,
                                         dbVersion: latestData()!.dbVersion,

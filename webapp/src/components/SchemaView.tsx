@@ -1,7 +1,7 @@
 import {executeSQL} from "../api.ts";
-import {createMemo, createResource, Match, Switch} from "solid-js";
-import hljs from "highlight.js/lib/core";
+import {createResource, Match, Switch} from "solid-js";
 import 'highlight.js/styles/github.min.css'
+import SQLHighlightView from "./SQLHighlightView.tsx";
 
 async function fetchTableSchema(table: string) {
     const resp = await executeSQL({
@@ -27,15 +27,6 @@ export default function SchemaView(props: {
     table: string,
 }) {
     const [data] = createResource(props.table, fetchTableSchema);
-
-    const highlightedCode = createMemo(() => {
-        if (data.state === 'ready') {
-            const ele = <pre><code class="language-sql">{data()}</code></pre> as HTMLElement;
-            hljs.highlightBlock(ele);
-            return ele;
-        }
-    });
-
     return <div class={"p-2 w-full max-h-full overflow-scroll " + (props.visible ? "" : " hidden")}>
         <Switch>
             <Match when={data.error}>
@@ -44,8 +35,8 @@ export default function SchemaView(props: {
                 </div>
             </Match>
 
-            <Match when={highlightedCode()}>
-                {highlightedCode()}
+            <Match when={data.state === 'ready'}>
+                <SQLHighlightView sql={data()!} class="text-sm" />
             </Match>
         </Switch>
     </div>

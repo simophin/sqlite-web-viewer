@@ -56,8 +56,8 @@ export default function QueryPage(props: {
     }
 
     return (
-        <div class={"h-full w-full flex flex-col gap-1 " + (props.visible ? "" : " hidden")}>
-            <div class="border border-base-300 bg-base-100 mt-2" >
+        <div class={"h-full w-full flex flex-col gap-1 pt-2 " + (props.visible ? "" : " hidden")}>
+            <div class="border border-base-300 bg-base-100 m-1" >
                 <SQLEditor
                     value={editingValue() ?? ''}
                     onEditingValueChanged={setEditingValue}
@@ -90,9 +90,9 @@ export default function QueryPage(props: {
                             <FaSolidClockRotateLeft />
                         </button>
 
-                        <ul tabindex="0" class="dropdown-content max-w-60 max-h-80 overflow-y-scroll z-1 bg-base-100 rounded-box p-2 shadow-sm">
+                        <ul tabindex="0" class="dropdown-content menu flex-nowrap max-w-60 max-h-80 overflow-y-scroll z-1 bg-base-100 rounded-box p-2 shadow-sm">
                             <For each={history()}>{(item) =>
-                                <li class="p-2 hover:bg-accent-content cursor-default text-sm w-full overflow-x-hidden select-none"
+                                <li class="p-2 cursor-default text-sm w-full overflow-x-hidden select-none"
                                     onclick={() => {
                                         setEditingValue(item);
                                         (document.activeElement as HTMLElement).blur();
