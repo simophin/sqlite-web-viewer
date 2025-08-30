@@ -1,7 +1,7 @@
 import "./RecordBrowser.css";
 
 import type { Pagination, RecordQueryable, Sorting } from "../RecordQueryable.tsx";
-import { createEffect, createMemo, createResource, createSignal, For, Show, untrack } from "solid-js";
+import {createEffect, createMemo, createResource, createSignal, For, onCleanup, Show, untrack} from "solid-js";
 import { executeSQL, type Request } from "../api.ts";
 import { PaginationBar } from "./PaginationBar.tsx";
 import DataViewerPanel from "./DataViewerPanel.tsx";
@@ -47,7 +47,6 @@ function createRequest(queryable: RecordQueryable,
     };
 }
 
-
 export default function RecordBrowser(props: {
     queryable: RecordQueryable,
     visible: boolean,
@@ -60,6 +59,8 @@ export default function RecordBrowser(props: {
 
     const [selectedCell, setSelectedCell] = createSignal<{ row: number; column: number } | undefined>();
     const [showDisplayPanel, setShowDisplayPanel] = createSignal(false);
+
+    const [autoRefreshSeconds, setAutoRefreshSeconds] = createSignal<number>();
 
     const [data, { refetch }] = createResource(() => createRequest(
         props.queryable,
@@ -99,6 +100,14 @@ export default function RecordBrowser(props: {
             columnMeta,
             primaryKeys,
         };
+    });
+
+    createEffect(() => {
+        const refreshSeconds = autoRefreshSeconds();
+        if (props.visible && refreshSeconds) {
+            const id = setInterval(refetch, refreshSeconds * 1000);
+            onCleanup(() => clearInterval(id));
+        }
     });
 
     const [lastSuccessResult, setLastSuccessResult] = createSignal<ReturnType<typeof data>>();
@@ -214,6 +223,8 @@ export default function RecordBrowser(props: {
                     setPagination={setPagination}
                     totalItemCount={lastSuccessResult()?.countResult}
                     onRefresh={refetch}
+                    autoRefreshInterval={autoRefreshSeconds()}
+                    setAutoRefreshInterval={setAutoRefreshSeconds}
                     refreshing={data.loading}
                 />
             </div>
