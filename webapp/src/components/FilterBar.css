@@ -1,17 +1,25 @@
 @reference "../style.css";
 
 .op-bar {
-    @apply bg-base-200 border-base-200;
+    @apply bg-base-200 border-base-200 border-2 flex w-full items-center justify-center gap-1;
 }
 
 .op-bar>label {
-    @apply font-medium p-2 text-sm select-none;
+    @apply font-medium pl-2 pr-1 pt-1 pb-1 text-sm select-none;
 }
 
 .op-bar>span[role="button"] {
-    @apply btn btn-circle btn-sm btn-ghost;
+    @apply btn btn-circle btn-xs btn-ghost;
 }
 
 .op-bar-input {
-    @apply flex-1 flex items-center overflow-x-scroll;
+    @apply flex-1 bg-base-100 overflow-hidden w-full;
+}
+
+.op-bar-input .cm-scroller {
+    scrollbar-width: none;
+}
+
+.op-bar-input .cm-scroller::-webkit-scrollbar {
+    display: none;
 }

@@ -1,6 +1,5 @@
 import {executeSQL} from "../api.ts";
 import {createResource, Match, Switch} from "solid-js";
-import 'highlight.js/styles/github.min.css'
 import SQLHighlightView from "./SQLHighlightView.tsx";
 
 async function fetchTableSchema(table: string) {

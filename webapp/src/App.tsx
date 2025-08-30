@@ -1,4 +1,4 @@
-import {createMemo, createResource, createSignal, For, Match, Show, Switch} from 'solid-js'
+import {createEffect, createMemo, createResource, createSignal, For, Match, Show, Switch} from 'solid-js'
 import './App.css'
 import NavListPanel, {fetchDbItems, isSameNavItem, type NavItem} from './components/NavListPanel.tsx'
 import {makePersisted} from '@solid-primitives/storage';
@@ -11,6 +11,9 @@ import TablePage from './components/TablePage.tsx';
 import hljs from 'highlight.js/lib/core';
 import sql from 'highlight.js/lib/languages/sql';
 import TriggerView from "./components/TriggerView.tsx";
+import DarkModeSwitch from "./components/DarkModeSwitch.tsx";
+import {useDarkTheme} from "./components/useDarkTheme.ts";
+import {useSystemDarkTheme} from "./components/useSystemDarkTheme.ts";
 
 type AppData = {
     dbVersion: DbVersion;
@@ -60,11 +63,23 @@ function App() {
         </Show>
     };
 
+    // Change our theme if system theme changes
+    const [_, setDarkTheme] = useDarkTheme();
+    const systemDarkTheme = useSystemDarkTheme();
+
+    createEffect(()=> {
+        setDarkTheme(systemDarkTheme());
+    });
+
     return <>
         <main class="flex h-screen w-screen">
             <aside class="shrink-0 h-full flex flex-col bg-base-200">
-                <h1 class="font-medium text-lg pt-3 pl-3 pb-1">SQLite Viewer</h1>
-                <nav style={{ width: leftPanelWidth() + 'px' }} class="w-full grow overflow-y-scroll" role="navigation">
+                <div class="flex pt-3 pl-3 pb-1 pr-3">
+                    <h1 class="font-medium text-lg">SQLite Viewer</h1>
+                    <div class="grow"/>
+                    <DarkModeSwitch />
+                </div>
+                <nav style={{width: leftPanelWidth() + 'px'}} class="w-full grow overflow-y-scroll" role="navigation">
                     {errorElements()}
 
                     <Show when={!!latestData()}>
