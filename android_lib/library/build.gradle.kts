@@ -10,15 +10,15 @@ version = System.getenv("VERSION") ?: "dev-snapshot"
 
 kotlin {
     androidTarget()
-    iosX64()
-    iosArm64 {
-        binaries {
-            framework {
-                baseName = "sqliteviewer"
-            }
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64(),
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "sqliteviewer"
         }
     }
-    iosSimulatorArm64()
     jvm {
         mainRun {
             mainClass.set("dev.fanchao.sqliteviewer.ServerKt")
@@ -43,13 +43,6 @@ kotlin {
                 implementation(libs.kotlinx.io.jvm)
             }
         }
-        val iosMain by creating {
-            dependsOn(commonMain)
-        }
-        val iosX64Main by getting { dependsOn(iosMain) }
-        val iosArm64Main by getting { dependsOn(iosMain) }
-        val iosSimulatorArm64Main by getting { dependsOn(iosMain) }
-
         val jvmMain by getting {
             dependencies {
                 implementation(libs.androidx.sqlite.bundled)
@@ -90,13 +83,12 @@ android {
 }
 
 mavenPublishing {
-    publishToMavenCentral()
-
-    signAllPublications()
-}
-
-mavenPublishing {
     coordinates(groupId = group.toString(), "sqlite-web-viewer", version.toString())
+
+    publishToMavenCentral()
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) {
+        signAllPublications()
+    }
 
     pom {
         name.set("SQLite Web Viewer")

@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_aar:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
 
       - name: Build android library
         if: github.event_name != 'workflow_dispatch'
-        run: ./gradlew :sqlite-web-viewer:assembleRelease
+        run: ./gradlew :sqlite-web-viewer:publishToMavenLocal :sqlite-web-viewer:assembleRelease
         working-directory: android_lib
 
       - name: Upload AAR
