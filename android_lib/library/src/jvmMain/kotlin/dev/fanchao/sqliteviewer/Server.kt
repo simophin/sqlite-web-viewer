@@ -7,10 +7,14 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.io.RawSource
+import kotlinx.io.asSource
 
-class EmptyStaticAssetProvider : StaticAssetProvider {
+class ClasspathStaticAssetProvider(
+    private val classLoader: ClassLoader = ClasspathStaticAssetProvider::class.java.classLoader
+) : StaticAssetProvider {
     override fun openAsset(path: String): RawSource? {
-        return null
+        val resourcePath = "webapp/${path.removePrefix("/")}"
+        return classLoader.getResourceAsStream(resourcePath)?.asSource()
     }
 }
 
@@ -36,7 +40,7 @@ fun main() = runBlocking {
     val instance = startDatabaseViewerServerShared(
         port = 3000,
         queryable = SqliteQueryable(connFactory),
-        assetProvider = EmptyStaticAssetProvider()
+        assetProvider = ClasspathStaticAssetProvider()
     )
 
     val port = instance.state.filterIsInstance<StartedInstance.State.Running>()

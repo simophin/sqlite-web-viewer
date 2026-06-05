@@ -8,6 +8,19 @@ plugins {
 group = "io.github.simophin"
 version = System.getenv("VERSION") ?: "dev-snapshot"
 
+val webAppDistDir = layout.projectDirectory.dir("../../webapp/dist")
+val generatedWebAppAssetsDir = layout.buildDirectory.dir("generated/webappAssets")
+val syncWebAppAssets by tasks.registering(Copy::class) {
+    from(webAppDistDir)
+    into(generatedWebAppAssetsDir.map { it.dir("webapp") })
+
+    doFirst {
+        check(webAppDistDir.asFile.exists()) {
+            "Missing webapp/dist. Run `npm ci && npm run build` in the webapp directory before building the library."
+        }
+    }
+}
+
 kotlin {
     androidTarget()
     listOf(
@@ -44,6 +57,7 @@ kotlin {
             }
         }
         val jvmMain by getting {
+            resources.srcDir(generatedWebAppAssetsDir)
             dependencies {
                 implementation(libs.androidx.sqlite.bundled)
                 runtimeOnly(libs.slf4j.simple)
@@ -80,6 +94,16 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    sourceSets["main"].assets.srcDir(generatedWebAppAssetsDir)
+}
+
+tasks.named("jvmProcessResources") {
+    dependsOn(syncWebAppAssets)
+}
+
+tasks.matching { it.name == "mergeReleaseAssets" || it.name == "mergeDebugAssets" }.configureEach {
+    dependsOn(syncWebAppAssets)
 }
 
 mavenPublishing {

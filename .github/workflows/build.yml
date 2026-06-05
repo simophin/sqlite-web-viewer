@@ -31,10 +31,6 @@ jobs:
         run: npm ci && npm run build
         working-directory: webapp
 
-      - name: Copy web build to android library
-        run: cp -Rv dist ../android_lib/library/src/androidMain/assets/webapp
-        working-directory: webapp
-
       - name: Build android library
         if: github.event_name != 'workflow_dispatch'
         run: ./gradlew :sqlite-web-viewer:publishToMavenLocal :sqlite-web-viewer:assembleRelease
