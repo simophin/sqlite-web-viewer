@@ -26,6 +26,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.ktor.util.escapeHTML
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
@@ -198,8 +199,20 @@ fun Route.databaseViewers(
 ) = databaseViewers(QueryableFactory(databases), assetProvider)
 
 private fun renderIndex(ids: Collection<String>, base: String): String {
-    val items = ids.joinToString("\n") { id ->
-        """<li><a href="$base$id/">$id</a></li>"""
+    // Pico CSS gives the page sensible classless styling (typography, spacing,
+    // dark/light) without any custom rules to maintain.
+    val body = if (ids.isEmpty()) {
+        "<p>No databases are currently available.</p>"
+    } else {
+        val items = ids.joinToString("\n") { id ->
+            val escaped = id.escapeHTML()
+            """<li><a href="$base$escaped/">$escaped</a></li>"""
+        }
+        """
+        <ul>
+        $items
+        </ul>
+        """.trimIndent()
     }
     return """
         <!doctype html>
@@ -209,12 +222,16 @@ private fun renderIndex(ids: Collection<String>, base: String): String {
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <meta name="color-scheme" content="dark light" />
             <title>SQLite Viewer — Databases</title>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
         </head>
         <body>
-            <h1>Databases</h1>
-            <ul>
-            $items
-            </ul>
+            <main class="container">
+                <hgroup>
+                    <h1>SQLite Viewer</h1>
+                    <p>Select a database to browse.</p>
+                </hgroup>
+                $body
+            </main>
         </body>
         </html>
     """.trimIndent()
