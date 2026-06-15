@@ -8,6 +8,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.defaultForFilePath
+import io.ktor.http.encodeURLPathPart
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
@@ -205,8 +206,12 @@ private fun renderIndex(ids: Collection<String>, base: String): String {
         "<p>No databases are currently available.</p>"
     } else {
         val items = ids.joinToString("\n") { id ->
-            val escaped = id.escapeHTML()
-            """<li><a href="$base$escaped/">$escaped</a></li>"""
+            // The id is a single URL path segment, so percent-encode it (this
+            // encodes '/', '?', '#', spaces, etc. that would otherwise break the
+            // link); use the HTML-escaped form only for the visible link text.
+            val href = id.encodeURLPathPart()
+            val text = id.escapeHTML()
+            """<li><a target="_blank" href="$base$href/">$text</a></li>"""
         }
         """
         <ul>
