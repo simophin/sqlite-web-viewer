@@ -37,9 +37,22 @@ fun main() = runBlocking {
         conn
     }
 
+    val connStorageB = ThreadLocal<SQLiteConnection>()
+    val connFactoryB = {
+        var conn = connStorageB.get()
+        if (conn == null) {
+            conn = driver.open(":memory:")
+            connStorageB.set(conn)
+        }
+        conn
+    }
+
     val instance = startDatabaseViewerServerShared(
         port = 3000,
-        queryable = SqliteQueryable(connFactory),
+        databases = mapOf(
+            "alpha" to SqliteQueryable(connFactory),
+            "beta" to SqliteQueryable(connFactoryB),
+        ),
         assetProvider = ClasspathStaticAssetProvider()
     )
 

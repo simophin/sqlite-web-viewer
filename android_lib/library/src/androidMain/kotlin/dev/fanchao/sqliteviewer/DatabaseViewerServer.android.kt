@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import dev.fanchao.sqliteviewer.model.Queryable
+import dev.fanchao.sqliteviewer.model.QueryableFactory
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.transformWhile
@@ -19,15 +20,40 @@ fun startDatabaseViewerServer(
     context: Activity,
     port: Int,
     queryable: Queryable,
-): StartedInstance {
-    val contextRef = WeakReference(context)
-    val applicationContext = context.applicationContext
-
-    val instance = startDatabaseViewerServerShared(
+): StartedInstance = startDatabaseViewerServer(context, port) { applicationContext ->
+    startDatabaseViewerServerShared(
         port = port,
         queryable = queryable,
         assetProvider = AndroidAssetProvider(applicationContext),
     )
+}
+
+/**
+ * Serves the databases supplied by [factory], each under its id, with an index at
+ * the root. The factory is consulted per request, so the available databases can
+ * change while the server runs.
+ */
+fun startDatabaseViewerServer(
+    context: Activity,
+    port: Int,
+    factory: QueryableFactory,
+): StartedInstance = startDatabaseViewerServer(context, port) { applicationContext ->
+    startDatabaseViewerServerShared(
+        port = port,
+        factory = factory,
+        assetProvider = AndroidAssetProvider(applicationContext),
+    )
+}
+
+private inline fun startDatabaseViewerServer(
+    context: Activity,
+    port: Int,
+    start: (applicationContext: Context) -> StartedInstance,
+): StartedInstance {
+    val contextRef = WeakReference(context)
+    val applicationContext = context.applicationContext
+
+    val instance = start(applicationContext)
 
     GlobalScope.launch {
         instance.state

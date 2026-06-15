@@ -35,7 +35,10 @@ export type QueryResult = {
 
 
 export async function executeSQL(req: Request): Promise<SuccessResponse> {
-    const server = DEV ? 'http://localhost:3000/query' : '/query';
+    // Relative in production so requests resolve under the current mount
+    // prefix (e.g. /__db/orders/query). The document URL must end in a
+    // trailing slash for this to resolve correctly (backend redirects ensure it).
+    const server = DEV ? 'http://localhost:3000/query' : 'query';
 
     const res = await fetch(server, {
         method: 'POST',
